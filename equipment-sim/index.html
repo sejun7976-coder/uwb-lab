@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>UWB 장비 시뮬레이터</title>
+<script>
+  // ?only=env | tests | bench : 노션 임베드용. 그 섹션만 보여 준다
+  (function () {
+    try {
+      var o = new URLSearchParams(location.search).get('only');
+      if (/^(env|tests|bench)$/.test(o || '')) document.documentElement.setAttribute('data-only', o);
+    } catch (e) { /* 무시 */ }
+  })();
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2715%27 fill=%27%231B6A87%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%275%27 fill=%27white%27/%3E%3Cpath d=%27M16 3a13 13 0 0 1 13 13M16 8a8 8 0 0 1 8 8%27 stroke=%27white%27 stroke-width=%272.2%27 fill=%27none%27/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -172,6 +181,14 @@
   #bench .side .warnbox, #bench .side .small { display: block; }
   ol.steps.benchpath li { color: var(--ink); }
 
+  /* 임베드 모드 (?only=) */
+  html[data-only] header, html[data-only] #equip, html[data-only] footer,
+  html[data-only] section > h2, html[data-only] section > .lede, html[data-only] #bench-info { display: none; }
+  html[data-only="env"] #tests, html[data-only="env"] #bench,
+  html[data-only="tests"] #env, html[data-only="tests"] #bench,
+  html[data-only="bench"] #env, html[data-only="bench"] #tests { display: none; }
+  html[data-only] .wrap { max-width: none; padding: 12px 12px 16px; gap: 14px; }
+  html[data-only] .view { height: clamp(360px, 62vh, 620px); }
   @media (max-width: 900px) {
     .stage { grid-template-columns: 1fr; }
     .view { height: 400px; }
