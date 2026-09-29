@@ -379,9 +379,17 @@
       const pts = [].concat.apply([], setup.parts.map(k => Q.corners(k, layout[k])));
       const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
       const x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
-      const t = V((x0 + x1) / 2, (y0 + y1) / 2, 8); controls.target.copy(t);
+      const zoom = parseFloat(document.documentElement.dataset.zoom) || 1;       // 주소의 &zoom=
+      // 확대하면 가운데를 배선이 모인 곳에 맞춰 선이 잘리지 않게 한다
+      let cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+      if (zoom > 1 && res && res.wires.length) {
+        const wx = [], wy = [];
+        res.wires.forEach(w => { wx.push(w.A.xy[0], w.B.xy[0]); wy.push(w.A.xy[1], w.B.xy[1]); });
+        cx = (Math.min.apply(null, wx) + Math.max.apply(null, wx)) / 2; cy = (Math.min.apply(null, wy) + Math.max.apply(null, wy)) / 2;
+      }
+      const t = V(cx, cy, 8); controls.target.copy(t);
       const tanH = Math.tan(camera.fov * DEG / 2);
-      const fit = Math.max((x1 - x0) / (2 * tanH * camera.aspect), (y1 - y0) / (2 * tanH)) * 1.06 + 14;
+      const fit = (Math.max((x1 - x0) / (2 * tanH * camera.aspect), (y1 - y0) / (2 * tanH)) * 1.06 + 14) / zoom;
       if (mode === 'top') camera.position.set(t.x, t.y + fit, t.z + 0.01);
       else if (mode === 'below') camera.position.set(t.x + fit * 0.08, t.y - fit * 0.92, t.z + fit * 0.3);
       else camera.position.set(t.x + fit * 0.12, t.y + fit * 0.88, t.z + fit * 0.5);

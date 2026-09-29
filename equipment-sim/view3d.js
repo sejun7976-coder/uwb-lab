@@ -256,7 +256,8 @@
     };
 
     view.frame = function () {
-      const R = view.env.room, t = V(R.w / 2, R.l / 2, Math.min(1.0, R.h * 0.35)), d = Math.max(R.w, R.l) * 1.2 + 2.4;
+      const zoom = parseFloat(document.documentElement.dataset.zoom) || 1;       // 주소의 &zoom=
+      const R = view.env.room, t = V(R.w / 2, R.l / 2, Math.min(1.0, R.h * 0.35)), d = (Math.max(R.w, R.l) * 1.2 + 2.4) / zoom;
       controls.target.copy(t);
       camera.position.set(t.x + d * 0.55, t.y + d * 0.72, t.z + d * 0.62);
       controls.update();

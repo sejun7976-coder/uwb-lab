@@ -9,6 +9,7 @@
   //   ?only=env | tests | bench  : 그 섹션만 보여 준다
   //   &view=only                 : 옵션·패널 없이 3D 화면만 (임베드 칸을 꽉 채움)
   //   &setup=anchor | tag        : 배선 조립에서 앵커 또는 태그만
+  //   &zoom=1.4                  : 3D 장면 확대 배율 (0.5–3)
   (function () {
     try {
       var q = new URLSearchParams(location.search), h = document.documentElement;
@@ -16,6 +17,8 @@
       if (/^(env|tests|bench)$/.test(o || '')) h.setAttribute('data-only', o);
       if (o && q.get('view') === 'only') h.setAttribute('data-vonly', '');
       if (/^(anchor|tag)$/.test(s || '')) h.setAttribute('data-setup', s);
+      var z = parseFloat(q.get('zoom'));
+      if (z >= 0.5 && z <= 3) h.setAttribute('data-zoom', String(z));
     } catch (e) { /* 무시 */ }
   })();
 </script>
