@@ -92,7 +92,7 @@
   function breakoutCanvas(def, m) {
     const d = B[def], { c, g } = canvasFor(d.Lb, d.Wb);
     const ox = -d.Lb / 2, oy = -d.Wb / 2;          // EAGLE 좌표 → 가운데 원점
-    g.fillStyle = '#1C1F3A'; g.fillRect(-d.Lb / 2, -d.Wb / 2, d.Lb, d.Wb);
+    g.fillStyle = m.pcb || '#1C1F3A'; g.fillRect(-d.Lb / 2, -d.Wb / 2, d.Lb, d.Wb);
     d.pins.forEach((n, i) => {
       const u = ox + d.header.x0 + i * 2.54, v = oy + d.header.y;
       pad(g, u, v, null);
@@ -101,12 +101,13 @@
     if (def === 'ina') {
       g.fillStyle = '#2F8F57'; g.fillRect(ox + 6.9, -(oy + 16.38) - 3.2, 11.6, 6.4);
       [['VIN−', 9.2], ['VBUS', 12.7], ['VIN+', 16.2]].forEach(([n, x]) => text(g, n, ox + x, oy + 12.2, 1.1, '#E8ECEE'));
-      text(g, 'INA228', 0, 1.2, 2.0, '#E8ECEE');
-      text(g, m.addr, 0, -1.6, 1.4, '#9AA0A3');
+      text(g, 'INA228 ' + (m.num || ''), 0, 1.4, 2.8, '#FFFFFF');
+      text(g, m.addr, 0, -2.2, 1.6, '#B8BEC2');
     } else {
       g.fillStyle = '#C8C3B5'; g.fillRect(ox + 0.2, -(oy + 8.89) - 2.2, 3, 4.4); g.fillRect(ox + d.Lb - 3.2, -(oy + 8.89) - 2.2, 3, 4.4);
       g.fillStyle = '#0D0D0D'; g.fillRect(-1.6, -(oy + 11) - 1.4, 3, 3);
-      text(g, 'ISM330DHCX', 0, -1.5, 1.8, '#E8ECEE');
+      text(g, 'IMU', 0, 1.6, 2.8, '#FFFFFF');
+      text(g, 'ISM330DHCX', 0, -2.0, 2.0, '#E8ECEE');
     }
     return c;
   }
@@ -170,7 +171,7 @@
     // ---- 이름표 ----
     function label(text, pos, cls) {
       const el = document.createElement('div'); el.className = 'lbl ' + (cls || ''); el.textContent = text; layer.appendChild(el);
-      const L = { el, pos, mid: /plain|pt/.test(cls || '') }; labels.push(L); return L;
+      const L = { el, pos, mid: /plain|pt|part/.test(cls || '') }; labels.push(L); return L;
     }
     function clearLabels() { labels.forEach(L => L.el.remove()); labels = []; }
     const pv = new THREE.Vector3();
@@ -233,7 +234,7 @@
         d.mounts.forEach(m => {
           const def = B[m.def], c = Q.mountCenter(m), bg = new THREE.Group();
           bg.position.copy(LV(c.u, c.v, 0)); bg.rotation.y = Math.PI;       // 브레드보드와 180° 반대
-          const pcb = box(def.Lb, 1.6, def.Wb, mat(new THREE.Color('#1C1F3A'))); pcb.position.copy(LV(0, 0, d.breakoutH + 0.8)); bg.add(pcb);
+          const pcb = box(def.Lb, 1.6, def.Wb, mat(new THREE.Color(m.pcb || '#1C1F3A'))); pcb.position.copy(LV(0, 0, d.breakoutH + 0.8)); bg.add(pcb);
           bg.add(texMesh(breakoutCanvas(m.def, m), def.Lb, def.Wb, d.breakoutH + 1.62));
           const pm = mat(new THREE.Color('#111315'));
           const hl = box(def.pins.length * 2.54, d.breakoutH - d.T, 2.5, pm);
@@ -270,8 +271,18 @@
       disposeTree(partG); clearLabels(); parts = {};
       setup.parts.forEach(k => { parts[k] = makePart(k); partG.add(parts[k]); placePart(k); });
       setup.parts.forEach(k => {
-        const h = k === 'esp' || k === 'dwm' ? Z.boardBottom + 8 : k === 'bb' ? 26 : 18;
+        if (k === 'bb') {     // 브레드보드 이름표는 레일 쪽 가장자리 (보드 이름표와 안 겹치게)
+          label(partTitle.bb, () => { const xy = Q.xf(layout.bb, 0, B.bb.W / 2 + 3); return V(xy[0], xy[1], 10); }, 'plain');
+          return;
+        }
+        const h = k === 'esp' || k === 'dwm' ? Z.boardBottom + 8 : 18;
         label(partTitle[k], () => { const p = layout[k]; return V(p.x, p.y, h); }, k === 'esp' || k === 'dwm' ? 'anchor' : '');
+      });
+      // 브레드보드 위 브레이크아웃: 이름 + 역할, 테두리 = 맡은 선 색
+      if (setup.parts.includes('bb')) B.bb.mounts.forEach(m => {
+        const c = Q.mountCenter(m);
+        const L = label(m.name + '\n' + m.sub, () => { const xy = Q.xf(layout.bb, c.u, c.v); return V(xy[0], xy[1], B.bb.breakoutH + 6); }, 'part');
+        L.el.style.borderColor = tok(m.color);
       });
       setXray(xray);
     }
@@ -376,23 +387,34 @@
       applyStyle();
     };
     view.frame = function (mode) {
-      const pts = [].concat.apply([], setup.parts.map(k => Q.corners(k, layout[k])));
-      const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
-      const x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+      const bboxOf = ks => {
+        const pts = [].concat.apply([], ks.map(k => Q.corners(k, layout[k])));
+        const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+        const x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+        return { w: x1 - x0, h: y1 - y0, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 };
+      };
+      const tanH = Math.tan(camera.fov * DEG / 2);
+      const fitOf = (b, rot) => Math.max((rot ? b.h : b.w) / (2 * tanH * camera.aspect), (rot ? b.w : b.h) / (2 * tanH)) * 1.06 + 14;
       const zoom = parseFloat(document.documentElement.dataset.zoom) || 1;       // 주소의 &zoom=
-      // 확대하면 가운데를 배선이 모인 곳에 맞춰 선이 잘리지 않게 한다
-      let cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-      if (zoom > 1 && res && res.wires.length) {
-        const wx = [], wy = [];
-        res.wires.forEach(w => { wx.push(w.A.xy[0], w.B.xy[0]); wy.push(w.A.xy[1], w.B.xy[1]); });
-        cx = (Math.min.apply(null, wx) + Math.max.apply(null, wx)) / 2; cy = (Math.min.apply(null, wy) + Math.max.apply(null, wy)) / 2;
+      const all = bboxOf(setup.parts);
+      let fit = fitOf(all, false), cx = all.cx, cy = all.cy, rot = false;
+      if (zoom > 1) {
+        // 확대: 기본 화면보다 zoom배 크게. 보조배터리는 빼고 가운데를 잡고, 세로로 긴 배치는 카메라를 90° 돌린다
+        fit /= zoom;
+        const main = bboxOf(setup.parts.filter(k => k !== 'bank'));
+        rot = main.h > main.w * 1.1;
+        if (setup.parts.includes('bb')) { cx = main.cx; cy = main.cy; }
+        else if (res && res.wires.length) {        // 앵커: 배선이 모인 곳
+          const wx = [], wy = [];
+          res.wires.forEach(w => { wx.push(w.A.xy[0], w.B.xy[0]); wy.push(w.A.xy[1], w.B.xy[1]); });
+          cx = (Math.min.apply(null, wx) + Math.max.apply(null, wx)) / 2; cy = (Math.min.apply(null, wy) + Math.max.apply(null, wy)) / 2;
+        }
       }
       const t = V(cx, cy, 8); controls.target.copy(t);
-      const tanH = Math.tan(camera.fov * DEG / 2);
-      const fit = (Math.max((x1 - x0) / (2 * tanH * camera.aspect), (y1 - y0) / (2 * tanH)) * 1.06 + 14) / zoom;
-      if (mode === 'top') camera.position.set(t.x, t.y + fit, t.z + 0.01);
-      else if (mode === 'below') camera.position.set(t.x + fit * 0.08, t.y - fit * 0.92, t.z + fit * 0.3);
-      else camera.position.set(t.x + fit * 0.12, t.y + fit * 0.88, t.z + fit * 0.5);
+      // 기본: 남쪽에서 봄 (x가 화면 가로). rot: 동쪽에서 봄 (y가 화면 가로)
+      const off = (a, up, b) => rot ? [b, up, -a] : [a, up, b];
+      const o = mode === 'top' ? off(0, fit, 0.01) : mode === 'below' ? off(fit * 0.08, -fit * 0.92, fit * 0.3) : off(fit * 0.12, fit * 0.88, fit * 0.5);
+      camera.position.set(t.x + o[0], t.y + o[1], t.z + o[2]);
       controls.maxPolarAngle = mode === 'below' ? Math.PI : Math.PI * 0.49;
       below = mode === 'below';
       if (plateG.userData.grid) plateG.userData.grid.visible = !below;

@@ -59,9 +59,10 @@
     freeRows: ['f', 'g', 'h', 'i'],                 // 브레이크아웃 헤더는 j행, 선은 f–i행
     // 브레이크아웃은 브레드보드와 180° 반대로 꽂는다 (몸체가 -v 쪽 밖으로 나감). 1번 핀 열 = c1, 핀 k → 열 c1-(k-1)
     mounts: [
-      { id: 'imu', def: 'imu', c1: 9, label: 'IMU' },
-      { id: 'ina1', def: 'ina', c1: 19, label: 'INA228 ①', addr: '0x40', role: '태그 5 V 입력 전체' },
-      { id: 'ina2', def: 'ina', c1: 29, label: 'INA228 ②', addr: '0x41 (A0 점퍼)', role: 'DWM3000 3V3 전원선' }
+      // name·sub = 3D 이름표, color = 이름표 테두리(맡은 선 색), pcb = 보드 색(구별용)
+      { id: 'imu', def: 'imu', c1: 9, label: 'IMU', name: 'ISM330DHCX', sub: 'IMU', color: '--w-imu', pcb: '#143238' },
+      { id: 'ina1', def: 'ina', c1: 19, label: 'INA228 ①', addr: '0x40', role: '태그 5 V 입력 전체', name: 'INA228 ①', sub: '5 V 전체', num: '①', color: '--w-5v', pcb: '#1C1F3A' },
+      { id: 'ina2', def: 'ina', c1: 29, label: 'INA228 ②', addr: '0x41 (A0 점퍼)', role: 'DWM3000 3V3 전원선', name: 'INA228 ②', sub: 'UWB 3V3', num: '②', color: '--w-3v3', pcb: '#2B1C36' }
     ],
     breakoutH: 11
   };
