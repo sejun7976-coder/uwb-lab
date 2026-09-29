@@ -19,7 +19,8 @@
   }
   function saveLayouts() { try { localStorage.setItem(KEY, JSON.stringify(st.layouts)); } catch (e) { /* 무시 */ } }
 
-  const st = { key: 'anchor', layouts: loadLayouts(), L: 100, colorMode: 'group', xray: true, filter: null, hi: null };
+  const H = document.documentElement, EMBED = H.hasAttribute('data-vonly');
+  const st = { key: /^(anchor|tag)$/.test(H.dataset.setup || '') ? H.dataset.setup : 'anchor', layouts: loadLayouts(), L: 100, colorMode: 'group', xray: true, filter: null, hi: null };
   const setupOf = k => B.setups[k];
   let res = null;
 
@@ -34,6 +35,14 @@
   const leg = document.createElement('div'); leg.className = 'bench-legend'; host.appendChild(leg);
   const hint = document.createElement('div'); hint.className = 'hint';
   hint.textContent = '부품 끌기 = 옮기기 · 두 번 누르기 = 90° 회전 · 선 누르기 = 강조'; host.appendChild(hint);
+  let status = null;
+  if (EMBED) {
+    status = document.createElement('div'); status.className = 'bench-status'; host.appendChild(status);
+    const cam = document.createElement('div'); cam.className = 'seg bench-cam'; cam.setAttribute('role', 'group'); cam.setAttribute('aria-label', '보는 방향');
+    cam.innerHTML = '<button type="button" data-cam="angle">비스듬히</button><button type="button" data-cam="top">위에서</button><button type="button" data-cam="below">아래에서</button>';
+    cam.querySelectorAll('button').forEach(b => b.addEventListener('click', () => view.frame(b.dataset.cam)));
+    host.appendChild(cam);
+  }
   function renderLegend() {
     const used = new Set(setupOf(st.key).wires.map(w => w.grp));
     leg.innerHTML = Object.keys(B.groups).filter(g => used.has(g)).map(g =>
@@ -100,6 +109,11 @@
       '<td class="con">' + esc(w.A.label) + '<br>→ ' + esc(w.B.label) + '</td><td>' + TYPE[w.type] + '</td>' +
       '<td>' + cm(w.need) + '</td><td class="' + (w.status === 'ok' ? 'good' : 'bad') + '">' + WORD[w.status] + (w.ruleBreak ? ' · 규칙' : '') + '</td></tr>').join('');
     const tt = totals();
+    if (status) {
+      const bad = r.wires.filter(w => w.status === 'over');
+      status.innerHTML = '<b>' + esc(s.title) + ' · 선 ' + r.wires.length + '가닥</b><span>10 cm 점퍼: 여유 ' + n.ok + ' · <span class="tight">빠듯 ' + n.tight + '</span> · <span class="' + (n.over ? 'bad' : '') + '">부족 ' + n.over + '</span></span>' +
+        bad.map(w => '<span class="bad">' + esc(w.note) + ' ≈ ' + cm(w.need) + ' cm</span>').join('');
+    }
     $('bench-side').innerHTML =
       '<div class="blk"><h3>' + esc(s.title) + ' · 선 ' + r.wires.length + '가닥</h3>' +
       '<div class="chips"><span class="chip los">여유 ' + n.ok + '</span><span class="chip edge">빠듯 ' + n.tight + '</span><span class="chip ' + (n.over ? 'block' : '') + '">부족 ' + n.over + '</span></div>' +

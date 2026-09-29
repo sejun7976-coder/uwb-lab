@@ -381,7 +381,7 @@
       const x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
       const t = V((x0 + x1) / 2, (y0 + y1) / 2, 8); controls.target.copy(t);
       const tanH = Math.tan(camera.fov * DEG / 2);
-      const fit = Math.max((x1 - x0) / (2 * tanH * camera.aspect), (y1 - y0) / (2 * tanH)) * 1.18 + 30;
+      const fit = Math.max((x1 - x0) / (2 * tanH * camera.aspect), (y1 - y0) / (2 * tanH)) * 1.06 + 14;
       if (mode === 'top') camera.position.set(t.x, t.y + fit, t.z + 0.01);
       else if (mode === 'below') camera.position.set(t.x + fit * 0.08, t.y - fit * 0.92, t.z + fit * 0.3);
       else camera.position.set(t.x + fit * 0.12, t.y + fit * 0.88, t.z + fit * 0.5);
