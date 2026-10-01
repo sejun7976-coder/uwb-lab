@@ -8,20 +8,25 @@
   const pct = x => Math.round(x * 100) + '%';
   const AIM_H = 1.2;   // 카메라가 겨누는 태그 높이 평면 (호모그래피 평면)
 
+  const q0 = new URLSearchParams(location.search);
   const st = {
-    test: 1, tagH: 1.2, t: 0, speed: 30, scrubbing: false,
+    test: /^[0-7]$/.test(q0.get('test') || '') ? +q0.get('test') : 1, tagH: 1.2, t: 0, speed: 30, scrubbing: false, space: q0.get('space') === 'B' ? 'B' : 'A',
     playing: !window.matchMedia('(prefers-reduced-motion: reduce)').matches
   };
-  // 공간 A (가정 크기)와 테스트 공간 시뮬레이터(env.html)의 최적 배치 · 공유기 위치를 그대로 쓴다
-  let roomCache = null;
-  function roomEnv() {
-    if (roomCache) return roomCache;
-    const E = S.ENV, O = S.envOpt, sp = E.SPACES.A, room = { w: sp.w, l: sp.l, h: sp.h };
+  // 공간 A·B (가정 크기)와 테스트 공간 시뮬레이터(env.html)의 최적 배치 · 보조 노드 · 공유기 · GT 카메라를 그대로 쓴다
+  const envCache = {};
+  function roomEnv(id) {
+    id = id || 'A';
+    if (envCache[id]) return envCache[id];
+    const E = S.ENV, O = S.envOpt, sp = E.SPACES[id], room = { w: sp.w, l: sp.l, h: sp.h };
     const pre = O.precompute(sp, AIM_H, E.GRID_STEP, 0.5);
-    const sel = (S.ENV_PRESETS && S.ENV_PRESETS.A) ? S.ENV_PRESETS.A.sel : O.baseline(pre);
+    const sel = (S.ENV_PRESETS && S.ENV_PRESETS[id]) ? S.ENV_PRESETS[id].sel : O.baseline(pre);
     const anchors = O.anchorsOf(pre, sel), aux = O.placeAux(pre, anchors, 3), router = O.placeRouter(pre, anchors, aux);
-    roomCache = { room, anchors, camera: G.camera(room, AIM_H), desk: true, router, space: sp };
-    return roomCache;
+    const cs = O.placeCameras(pre), set = cs.one.cover >= 0.95 ? cs.one : cs.two;
+    const cameras = set.cams.map(c => ({ pos: c.pos, tgt: c.tgt, hfov: O.CAM.hfov, vfov: O.CAM.vfov, corner: c.corner }));
+    const obstacles = sp.obstacles.map(o => ({ kind: o.kind, name: o.name, x: o.x, y: o.y, z0: o.z0, z1: o.z1, hx: o.hx, hy: o.hy, rot: 0 }));
+    envCache[id] = { id, room, anchors, cameras, camera: cameras[0], desk: true, router, aux: aux[0], obstacles, space: sp };
+    return envCache[id];
   }
 
   // ---- 장치 구성 카드 (클릭) ----
@@ -30,7 +35,7 @@
     if (!info) { if (card) card.remove(); return; }
     const d = S.DEVICES[info.kind];
     if (!d) return;
-    let title = { tag: '태그', camera: 'GT 카메라', desk: '노트북 (방 밖)', router: '공유기', phantom: '물 팬텀' }[info.kind] || '';
+    let title = { tag: '태그', camera: 'GT 카메라', desk: '노트북 (방 밖)', router: '공유기', phantom: '물 팬텀', aux: '보조 Wi-Fi 노드 (S1)', obstacle: '장애물' }[info.kind] || '';
     let extra = '';
     if (info.kind === 'anchor') {
       const a = env.anchors.find(x => x.id === info.id);
@@ -54,6 +59,16 @@
   const hud = document.createElement('div'); hud.className = 'hud';
   hud.innerHTML = '<span class="rec" id="hud-rec"><i></i><span>기록 안 함</span></span><span class="now" id="hud-now"></span>';
   testHost.appendChild(hud);
+  // 3D 화면 안 공간 전환 (임베드에서도 보이게). 1·2·6번에서만 나온다
+  const spaceBox = document.createElement('div'); spaceBox.className = 'seg space-in-view'; spaceBox.setAttribute('role', 'group'); spaceBox.setAttribute('aria-label', '공간');
+  testHost.appendChild(spaceBox);
+  spaceBox.addEventListener('click', e => { const b = e.target.closest('button'); if (b) setSpace(b.dataset.sp); });
+  function setSpace(k) { if (k === st.space) return; st.space = k; st.t = 0; showDev(testHost, null); buildTest(false); renderTestSide(); }
+  function renderSpaceBox() {
+    const test = T.list[st.test];
+    spaceBox.style.display = test.spaces ? '' : 'none';
+    if (test.spaces) spaceBox.innerHTML = test.spaces.map(k => '<button type="button" data-sp="' + k + '" aria-pressed="' + (st.space === k) + '">공간 ' + k + (k === 'B' ? ' · 장애물' : '') + '</button>').join('');
+  }
   overlay(testHost,
     '<span><i style="background:var(--ok)"></i>LOS</span><span><i style="background:var(--edge)"></i>경계</span><span><i style="background:var(--block)"></i>가림</span><span><i style="background:var(--radio)"></i>Wi-Fi 전송</span>',
     '드래그 회전 · 휠 확대 · 태그 클릭');
@@ -73,12 +88,15 @@
     if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) st.playing = true;
     playBtn();
   }
+  let lastEnvKey = '';
   function buildTest(keepCam) {
     const test = T.list[st.test];
-    tenv = test.env === 'corridor' ? T.corridorEnv() : roomEnv();
+    const spId = test.spaces && test.spaces.includes(st.space) ? st.space : 'A';   // 공간 선택은 1·2·6번에만, 나머지는 A
+    tenv = test.env === 'corridor' ? T.corridorEnv() : roomEnv(spId);
+    if (lastEnvKey !== (tenv.id || 'C')) { keepCam = false; lastEnvKey = tenv.id || 'C'; }
     const P = { tagH: test.tagH.fixed ? test.tagH.def : st.tagH };
     run = T.run(test, tenv, P); run.tagH = P.tagH;
-    testView.setEnv(tenv, { showFov: test.gt && tenv.camera, fovH: P.tagH, keepCamera: keepCam });
+    testView.setEnv(tenv, { showFov: test.gt && T.cams(tenv).length, fovH: P.tagH, keepCamera: keepCam });
     testView.setTest(run);
     st.t = Math.min(st.t, run.total);
     $('scrub').max = run.total.toFixed(1);
@@ -89,11 +107,16 @@
     const test = T.list[st.test], h = test.tagH;
     $('test-side').innerHTML =
       '<div class="blk"><h3>' + test.no + '. ' + esc(test.name) + '</h3><span class="small">' + esc(test.mount) + ' · <span id="tt-total"></span></span>' +
+      (test.spaces ? '<div class="param"><span>공간</span><div class="seg" id="tt-space">' + test.spaces.map(k => '<button type="button" data-sp="' + k + '" aria-pressed="' + (st.space === k) + '">' + esc(S.ENV.SPACES[k].name) + '</button>').join('') + '</div></div>' +
+        '<span class="small">' + esc(S.ENV.SPACES[st.space].w + ' × ' + S.ENV.SPACES[st.space].l + ' m (가정) · ' + S.ENV.SPACES[st.space].role) + '</span>' : '<span class="small">' + (test.env === 'corridor' ? '공간 C 복도 (가정 ' + S.ENV.SPACES.C.w + ' × ' + S.ENV.SPACES.C.l + ' m)' : '공간 A 기본 방 (가정 ' + S.ENV.SPACES.A.w + ' × ' + S.ENV.SPACES.A.l + ' m)') + '</span>') +
       (h.fixed ? '' : '<div class="param"><label for="tag-h">태그 높이</label><input type="range" id="tag-h" min="' + h.min + '" max="' + h.max + '" step="0.05" value="' + st.tagH + '"><span class="mono" id="tag-h-v">' + st.tagH.toFixed(2) + ' m</span></div>') + '</div>' +
       '<div class="blk"><h3>진행 순서</h3><ol class="steps" id="tt-steps">' + test.steps.map((s, i) => '<li data-i="' + i + '">' + esc(s) + '</li>').join('') + '</ol></div>' +
       '<div class="blk"><h3>지금</h3><dl class="kv"><dt>경과</dt><dd id="lv-t"></dd><dt>기록한 시간</dt><dd id="lv-rec"></dd><dt>UWB 사이클 (10 Hz)</dt><dd id="lv-uwb"></dd><dt>IMU 샘플 (208 Hz)</dt><dd id="lv-imu"></dd><dt>GT 카메라</dt><dd id="lv-gt"></dd></dl>' +
       '<div class="chips" id="lv-chips"></div></div>' +
       '<div class="blk"><h3>기록 구간 전체 · 앵커별 링크</h3><div class="bars" id="tt-bars"></div><span class="small" id="tt-gt"></span></div>';
+    const sb = $('tt-space');
+    if (sb) sb.addEventListener('click', e => { const b = e.target.closest('button'); if (b) setSpace(b.dataset.sp); });
+    renderSpaceBox();
     const r = $('tag-h');
     if (r) r.addEventListener('input', () => { st.tagH = +r.value; $('tag-h-v').textContent = st.tagH.toFixed(2) + ' m'; buildTest(true); });
     renderStats();
@@ -109,7 +132,7 @@
     const g = s.gt;
     if (g) {
       const n = Math.max(1, g.ok + g.out + g.hidden);
-      $('tt-gt').textContent = 'GT 카메라에서 태그가 보인 시간 ' + pct(g.ok / n) + ' · 화각 밖 ' + pct(g.out / n) + ' · 사람·팬텀에 가림 ' + pct(g.hidden / n);
+      $('tt-gt').textContent = 'GT 카메라' + (T.cams(tenv).length > 1 ? ' ' + T.cams(tenv).length + '대 중 하나라도' : '') + '에서 태그가 보인 시간 ' + pct(g.ok / n) + ' · 화각 밖 ' + pct(g.out / n) + ' · 사람·팬텀·장애물에 가림 ' + pct(g.hidden / n);
     } else $('tt-gt').textContent = '이 테스트는 카메라 GT를 쓰지 않는다.';
   }
   function renderTestInfo() {
@@ -127,7 +150,7 @@
       st.t += dt * st.speed;
       if (st.t >= run.total) { st.t = run.total; st.playing = false; playBtn(); }
     }
-    const s = T.stateAt(run.tl, st.t), boxes = T.obstacles(s), p = [s.x, s.y, s.z];
+    const s = T.stateAt(run.tl, st.t), boxes = T.obstacles(s, tenv), p = [s.x, s.y, s.z];
     const status = tenv.anchors.map(a => G.link(p, [a.x, a.y, a.z], boxes));
     testView.applyState(s, status, now);
     if (now - lastUi > 0.1) { lastUi = now; live(s, status, boxes, p); }
@@ -146,7 +169,7 @@
     $('lv-uwb').textContent = nf(s.recT * S.RATES.uwbHz);
     $('lv-imu').textContent = nf(s.recT * S.RATES.imuHz);
     let gt = '안 씀';
-    if (test.gt && tenv.camera) gt = { ok: '보임', out: '화각 밖', hidden: '가림' }[G.gtStatus(tenv.camera, p, boxes)];
+    if (test.gt && T.cams(tenv).length) gt = { ok: '보임', out: '화각 밖', hidden: '가림' }[T.gt(tenv, p, boxes)] + (T.cams(tenv).length > 1 ? ' (카메라 ' + T.cams(tenv).length + '대)' : '');
     $('lv-gt').textContent = gt;
     $('tt-steps').querySelectorAll('li').forEach(li => li.classList.toggle('cur', +li.dataset.i === s.seg.step));
     const word = { los: 'LOS', edge: '경계', block: '가림' };

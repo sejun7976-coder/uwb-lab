@@ -62,6 +62,18 @@ window.SIM = window.SIM || {};
         '배치는 예시 (방 밖 책상)'
       ]
     },
+    aux: {
+      role: '보조 Wi-Fi 노드: 앵커와 다른 벽의 Wi-Fi AP · BLE 광고 (UWB 없음)',
+      parts: [
+        'ESP32-S3 보드 + 보조배터리, 모듈 안테나를 위로',
+        '세션마다 S1 → S2 → S3로 옮긴다 (위치는 테스트 공간 시뮬레이터 계산값, 그림은 S1)',
+        '팀원 Wi-Fi sensing 실험과 공용'
+      ]
+    },
+    obstacle: {
+      role: '공간 B의 장애물 (가정 배치)',
+      parts: ['금속 선반·캐비닛·장비 랙은 UWB를 가린다', '선반 뒤 구간이 자연 NLOS 구간이 된다']
+    },
     router: {
       role: '데이터 전송 + 2.4 GHz RSSI 기준점 (앵커와 다른 위치)',
       parts: [

@@ -183,6 +183,26 @@
         label('공유기', V(r.x, r.y, 1.18), '', 'env');
       }
 
+      // 고정 장애물 (공간 B)
+      (env.obstacles || []).forEach(o => {
+        const steel = mat(C('--metal'), { metalness: 0.5, roughness: 0.5 }), H = o.z1, g = new THREE.Group();
+        const x0 = o.x - o.hx, x1 = o.x + o.hx, y0 = o.y - o.hy, y1 = o.y + o.hy;
+        if (o.kind === 'shelf') {
+          [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].forEach(q => g.add(cylBetween(V(q[0], q[1], 0), V(q[0], q[1], H), 0.02, steel)));
+          for (let k = 0; k < 5; k++) { const b = box(o.hx * 2, 0.025, o.hy * 2, steel); b.position.copy(V(o.x, o.y, 0.08 + k * (H - 0.12) / 4)); g.add(b); }
+          for (let k = 0; k < 4; k++) [[0.5, 0.18], [-0.5, 0.25], [0.1, 0.3]].forEach(q => { const b = box(o.hx * 1.6, q[1], 0.35, mat('#8a6f4d')); b.position.copy(V(o.x, o.y + q[0] * o.hy * 1.5, 0.105 + k * (H - 0.12) / 4 + q[1] / 2)); g.add(b); });
+        } else if (o.kind === 'bench') {
+          const t = box(o.hx * 2, 0.04, o.hy * 2, mat('#b08d62')); t.position.copy(V(o.x, o.y, H - 0.02)); g.add(t);
+          [[x0 + 0.05, y0 + 0.05], [x1 - 0.05, y0 + 0.05], [x1 - 0.05, y1 - 0.05], [x0 + 0.05, y1 - 0.05]].forEach(q => g.add(cylBetween(V(q[0], q[1], 0), V(q[0], q[1], H - 0.04), 0.025, steel)));
+        } else {
+          const b = box(o.hx * 2, H, o.hy * 2, o.kind === 'rack' ? mat('#3b4246', { metalness: 0.4 }) : steel); b.position.copy(V(o.x, o.y, H / 2)); g.add(b);
+        }
+        const hit = box(o.hx * 2, H, o.hy * 2, basic(0xffffff, { transparent: true, opacity: 0, depthWrite: false })); hit.position.copy(V(o.x, o.y, H / 2)); g.add(hit);
+        pickable(hit, { kind: 'obstacle' }, 'env');
+        envG.add(g);
+        label(o.name, V(o.x, o.y, H + 0.06), 'plain', 'env');
+      });
+
       // 앵커
       const ringM = basic(C('--radio'), { transparent: true, opacity: 0.4, side: THREE.DoubleSide, depthWrite: false });
       env.anchors.forEach(a => {
@@ -207,9 +227,24 @@
         label('A' + a.id + ' · ' + a.z.toFixed(1) + ' m', V(a.x, a.y, a.z + 0.1), 'anchor', 'env');
       });
 
-      // GT 카메라와 화각
-      if (env.camera) {
-        const c = env.camera, g = new THREE.Group();
+      // 보조 Wi-Fi 노드 (S1, UWB 없음)
+      if (env.aux) {
+        const a = env.aux, g = new THREE.Group();
+        g.position.copy(V(a.x, a.y, a.z)); g.rotation.y = Math.atan2(a.nx, -a.ny);
+        const sp = box(0.05, 0.08, S.STANDOFF - 0.012, mat(C('--spacer'))); sp.position.z = -(S.STANDOFF + 0.012) / 2; g.add(sp);
+        const esp = box(0.026, 0.07, 0.004, mat(C('--board'))); g.add(esp);
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.014, 12, 8), basic(C('--radio'))); dot.position.set(0, 0.03, 0.008); g.add(dot);
+        const halo = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 10), basic(C('--radio'), { transparent: true, opacity: 0.2, depthWrite: false })); halo.position.copy(dot.position); g.add(halo);
+        pickable(halo, { kind: 'aux' }, 'env');
+        envG.add(g);
+        const ring = new THREE.Mesh(new THREE.RingGeometry(0.07, 0.085, 36), ringM.clone());
+        ring.rotation.x = -Math.PI / 2; ring.position.copy(V(a.x, a.y, a.z)); ring.visible = false; envG.add(ring); rings.push(ring);
+        label('S1 보조 노드', V(a.x, a.y, a.z + 0.1), '', 'env');
+      }
+
+      // GT 카메라와 화각 (공간 B는 2대)
+      (env.cameras || (env.camera ? [env.camera] : [])).forEach((c, ci, all) => {
+        const g = new THREE.Group();
         g.position.copy(V(c.pos[0], c.pos[1], c.pos[2]));
         g.lookAt(V(c.tgt[0], c.tgt[1], c.tgt[2]));
         const pi = box(0.085, 0.056, 0.02, mat(C('--ok'))); pi.position.z = -0.02; g.add(pi);
@@ -218,7 +253,7 @@
         const hit = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 8), basic(C('--ok'), { transparent: true, opacity: 0.12, depthWrite: false })); g.add(hit);
         pickable(hit, { kind: 'camera' }, 'env');
         envG.add(g);
-        label('GT 카메라 (Pi)', V(c.pos[0], c.pos[1], c.pos[2] + 0.1), '', 'env');
+        label('GT 카메라' + (all.length > 1 ? ' ' + (ci + 1) : '') + ' (Pi)', V(c.pos[0], c.pos[1], c.pos[2] + 0.1), '', 'env');
         if (o.showFov) {
           const h = o.fovH, poly = G.camCoverage(c, h, R);
           if (poly.length > 2) {
@@ -231,7 +266,7 @@
           G.camCorners(c, h).forEach(q => fl.push(cp, V(q[0], q[1], q[2])));
           envG.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(fl), new THREE.LineBasicMaterial({ color: C('--ok'), transparent: true, opacity: 0.35 })));
         }
-      }
+      });
 
       if (!o.keepCamera) view.frame();
     };
@@ -277,7 +312,8 @@
         run.points.forEach((p, i) => {
           [Math.PI / 4, -Math.PI / 4].forEach(r => { const t = box(0.16, 0.002, 0.025, tapeM); t.position.copy(V(p[0], p[1], 0.003)); t.rotation.y = r; dynG.add(t); });
           const L = label(String(i + 1), V(p[0] + 0.12, p[1] - 0.12, 0.02), 'pt', 'dyn');
-          if (env.camera && !G.camSees(env.camera, [p[0], p[1], run.tagH])) L.el.style.color = tok('--block');
+          const cams = env.cameras || (env.camera ? [env.camera] : []);
+          if (cams.length && !cams.some(c => G.gtStatus(c, [p[0], p[1], run.tagH], env.obstacles || []) === 'ok')) L.el.style.color = tok('--block');
         });
       }
       const beam = new THREE.CylinderGeometry(1, 1, 1, 6);

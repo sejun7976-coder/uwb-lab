@@ -75,11 +75,20 @@
     return a + d * u;
   }
 
-  T.obstacles = function (st) {
-    const out = [];
+  // 가림 판정에 쓰는 상자: 공간의 고정 장애물(선반 등) + 팬텀 + 사람
+  T.obstacles = function (st, env) {
+    const out = env && env.obstacles ? env.obstacles.slice() : [];
     if (st.phantom) out.push({ kind: 'phantom', x: st.phantom.x, y: st.phantom.y, z0: 0, z1: S.PHANTOM.h, hx: S.PHANTOM.hx, hy: S.PHANTOM.hy, rot: st.phantom.rot });
     if (st.person) out.push({ kind: 'person', x: st.person.x, y: st.person.y, z0: 0, z1: S.PERSON.h, hx: S.PERSON.hx, hy: S.PERSON.hy, rot: st.person.hd - HALF_PI });
     return out;
+  };
+
+  // GT 카메라가 여러 대면 한 대라도 보이면 ok, 화각 안인데 가려졌으면 hidden, 모두 화각 밖이면 out
+  T.cams = env => env.cameras || (env.camera ? [env.camera] : []);
+  T.gt = function (env, p, boxes) {
+    let hidden = false;
+    for (const c of T.cams(env)) { const g = G.gtStatus(c, p, boxes); if (g === 'ok') return 'ok'; if (g === 'hidden') hidden = true; }
+    return hidden ? 'hidden' : 'out';
   };
 
   // 기록 구간 전체에서 앵커별 LOS·경계·가림 비율과 카메라 GT 상태 비율
@@ -92,15 +101,16 @@
       const st = T.stateAt(tl, t);
       if (!st.seg.rec) continue;
       n++;
-      const boxes = T.obstacles(st), p = [st.x, st.y, st.z];
+      const boxes = T.obstacles(st, env), p = [st.x, st.y, st.z];
       env.anchors.forEach((a, i) => { cnt[i][G.link(p, [a.x, a.y, a.z], boxes)]++; });
-      if (test.gt && env.camera) gt[G.gtStatus(env.camera, p, boxes)]++;
+      if (test.gt && T.cams(env).length) gt[T.gt(env, p, boxes)]++;
     }
-    return { cnt, gt: test.gt && env.camera ? gt : null, n };
+    return { cnt, gt: test.gt && T.cams(env).length ? gt : null, n };
   };
 
   // ---- 경로 도우미 ----
-  T.gridPoints = function (room) {
+  T.gridPoints = function (room, env) {
+    if (env && env.obstacles && env.obstacles.length) return samplePoints(room, env, 15);
     const mx = Math.min(0.6, room.w * 0.2), my = Math.min(0.6, room.l * 0.2);
     const xs = [mx, room.w / 2, room.w - mx], pts = [];
     for (let j = 0; j < 5; j++) {
@@ -111,7 +121,35 @@
     }
     return pts;
   };
-  function loopPath(room) {
+  // 장애물에서 0.5 m 이상 떨어진 0.5 m 격자 후보 중, 카메라에 보이는 점을 우선해 서로 멀리 15곳을 고르고 가까운 순서로 잇는다
+  function samplePoints(room, env, n) {
+    const box2 = (b, x, y) => Math.hypot(Math.max(Math.abs(x - b.x) - b.hx, 0), Math.max(Math.abs(y - b.y) - b.hy, 0));
+    const cand = [];
+    for (let x = 0.6; x <= room.w - 0.6 + 1e-6; x += 0.5) for (let y = 0.6; y <= room.l - 0.6 + 1e-6; y += 0.5) {
+      if (env.obstacles.some(b => box2(b, x, y) < 0.5)) continue;
+      cand.push({ x, y, seen: T.gt(env, [x, y, 1.2], env.obstacles) === 'ok' });
+    }
+    const pick = [cand.reduce((a, c) => (Math.hypot(c.x, c.y) < Math.hypot(a.x, a.y) ? c : a))];
+    while (pick.length < n && pick.length < cand.length) {
+      let best = null, bs = -1;
+      cand.forEach(c => {
+        if (pick.includes(c)) return;
+        const d = Math.min.apply(null, pick.map(p => Math.hypot(p.x - c.x, p.y - c.y))) + (c.seen ? 0.35 : 0);
+        if (d > bs) { bs = d; best = c; }
+      });
+      pick.push(best);
+    }
+    const order = [pick.shift()];
+    while (pick.length) {
+      const last = order[order.length - 1];
+      let k = 0;
+      pick.forEach((p, i) => { if (Math.hypot(p.x - last.x, p.y - last.y) < Math.hypot(pick[k].x - last.x, pick[k].y - last.y)) k = i; });
+      order.push(pick.splice(k, 1)[0]);
+    }
+    return order.map(p => [p.x, p.y]);
+  }
+  function loopPath(room, env) {
+    if (env && env.space && env.space.loop) return env.space.loop.map(p => p.slice());
     const m = Math.min(0.6, room.w * 0.2, room.l * 0.2);
     return [[m, m], [m, room.l - m], [room.w - m, room.l - m], [room.w - m, m], [m, m]];
   }
@@ -154,15 +192,15 @@
       }
     },
     {
-      id: 'static', no: '1', name: '정지 15점', mount: '삼각대', gt: true,
+      id: 'static', no: '1', name: '정지 15점', mount: '삼각대', gt: true, spaces: ['A', 'B'],
       tagH: { def: 1.2, min: 0.8, max: 1.6 },
       purpose: '정지 상태의 기본 정확도(UWB·Wi-Fi RSS·BLE RSS 각각)를 재고, 카메라 GT 오차를 검증한다.',
-      prep: ['바닥에 15점(3 × 5 격자)을 테이프로 표시하고 좌표를 줄자로 실측한다', '태그 높이는 모든 점에서 같게 (호모그래피 평면)'],
+      prep: ['바닥에 15점을 테이프로 표시하고 좌표를 줄자로 실측한다 (A는 3 × 5 격자, B는 장애물에서 0.5 m 이상 떨어진 통로의 점)', '태그 높이는 모든 점에서 같게 (호모그래피 평면)'],
       steps: ['1번 점에 삼각대를 세운다', '방 밖으로 나가 60초 기록 (LED 동기화 점멸 포함)', '다음 점으로 옮긴다 (20초, 기록 안 함)'],
       records: '점마다 UWB 600사이클(앵커 6개 거리 + 수신 진단값), IMU 약 12,500샘플, Wi-Fi·BLE RSSI.',
-      notes: ['측정 중 사람이 방 안에 있으면 몸이 가림이 된다. 기록할 때는 방 밖에서 노트북으로 확인', '카메라 화각 밖인 점은 GT 검증에서 빠진다. 3D에서 주황 점 번호와 오른쪽 GT 비율을 확인', '관측 부족 조건(앵커 6 → 4 → 3 → 2)은 따로 실험하지 않고 이 기록에서 앵커를 빼서 만든다', '공간 B(장애물 공간)에서 같은 순서로 한 번 더 한다 (테스트 공간 시뮬레이터의 B 배치)'],
+      notes: ['측정 중 사람이 방 안에 있으면 몸이 가림이 된다. 기록할 때는 방 밖에서 노트북으로 확인', '카메라 화각 밖인 점은 GT 검증에서 빠진다. 3D에서 주황 점 번호와 오른쪽 GT 비율을 확인', '관측 부족 조건(앵커 6 → 4 → 3 → 2)은 따로 실험하지 않고 이 기록에서 앵커를 빼서 만든다', '공간 B(장애물 공간)에서 같은 순서로 한 번 더 한다. 오른쪽 공간 선택에서 B를 고르면 통로의 정지점 15곳과 선반 가림이 나온다'],
       build(env, P) {
-        const tl = new TL(), pts = T.gridPoints(env.room), z = P.tagH;
+        const tl = new TL(), pts = T.gridPoints(env.room, env), z = P.tagH;
         tl.add(30, { path: [pts[0]], z, person: 'carry', step: 0, label: '1번 점에 삼각대 설치' });
         pts.forEach((p, i) => {
           if (i > 0) tl.move([pts[i - 1], p], 0.4, { z, person: 'carry', step: 2, label: (i + 1) + '번 점으로 옮김' });
@@ -172,15 +210,15 @@
       }
     },
     {
-      id: 'cart', no: '2', name: '카트 이동', mount: '카트 위 삼각대', gt: true,
+      id: 'cart', no: '2', name: '카트 이동', mount: '카트 위 삼각대', gt: true, spaces: ['A', 'B'],
       tagH: { def: 1.2, min: 0.9, max: 1.6 },
       purpose: '고정 높이 등속 이동에서 UWB·IMU·RSS를 비교한다. 같은 경로를 반복해 조건 간 비교가 공정하게 한다.',
       prep: ['벽에서 0.6 m 안쪽 사각 경로를 바닥 테이프로 표시', '카트 위 삼각대에 태그, 사람은 뒤에서 민다'],
       steps: ['출발점에서 20초 정지 (IMU 정지 구간, LED 동기화)', '시계 방향 5바퀴, 약 0.5 m/s', '제자리에서 돌아 반시계 방향 5바퀴', '도착 후 10초 정지'],
       records: '전체 약 4분 연속 기록. 바퀴마다 같은 경로라 바퀴 사이 편차도 볼 수 있다.',
-      notes: ['미는 사람 몸이 뒤쪽 앵커를 가린다. 오른쪽 앵커별 가림 비율 참고', '방향을 반대로도 돌면 몸 가림이 특정 앵커에 몰리지 않는다', '가림을 줄이려면 손잡이를 길게 하거나, 몸 가림을 조건으로 명시', '공간 B에서도 같은 경로로 반복한다'],
+      notes: ['미는 사람 몸이 뒤쪽 앵커를 가린다. 오른쪽 앵커별 가림 비율 참고', '방향을 반대로도 돌면 몸 가림이 특정 앵커에 몰리지 않는다', '가림을 줄이려면 손잡이를 길게 하거나, 몸 가림을 조건으로 명시', '공간 B에서는 선반 두 개를 둘러싸는 통로 고리를 돈다 (공간 선택 B). 선반 뒤 구간에서 가려지는 앵커가 자연 NLOS 구간이다'],
       build(env, P) {
-        const tl = new TL(), loop = loopPath(env.room), ll = loopLen(loop), z = P.tagH, o = { z, mount: 'cart', person: 'push', rec: true };
+        const tl = new TL(), loop = loopPath(env.room, env), ll = loopLen(loop), z = P.tagH, o = { z, mount: 'cart', person: 'push', rec: true };
         const rev = loop.slice().reverse();
         tl.add(20, Object.assign({ path: [loop[0]], step: 0, label: '출발점 정지' }, o));
         tl.move(laps(loop, 5), 0.5, Object.assign({ step: 1, label: '시계 방향', lapLen: ll, laps: 5 }, o));
@@ -221,7 +259,7 @@
       records: '조건마다 UWB 성공률·거리 오차, Wi-Fi·BLE RSSI 샘플 수와 분산. 차이가 없으면 "간섭 영향 없음"을 수치로 제시.',
       notes: ['보라색 선 = 태그 → 공유기 실시간 전송, 앵커 둘레의 파동 = AP·BLE 광고', '앵커 광고를 켜고 끄는 방법(명령 경로)은 펌웨어에서 아직 정하지 않았다'],
       build(env, P) {
-        const tl = new TL(), loop = loopPath(env.room), ll = loopLen(loop), z = P.tagH;
+        const tl = new TL(), loop = loopPath(env.room, env), ll = loopLen(loop), z = P.tagH;
         const conds = [['A', true, true], ['B', false, true], ['C', true, false], ['D', false, false]];
         tl.add(30, { path: [loop[0]], z, mount: 'cart', person: 'carry', adv: false, step: 0, label: '주변 AP 스캔·채널 고정' });
         conds.forEach((c, i) => {
@@ -258,15 +296,15 @@
       }
     },
     {
-      id: 'helmet', no: '6', name: '안전모 보행', mount: '안전모 · 태그 약 1.75 m', gt: true,
+      id: 'helmet', no: '6', name: '안전모 보행', mount: '안전모 · 태그 약 1.75 m', gt: true, spaces: ['A', 'B'],
       tagH: { fixed: true, def: 1.75 },
       purpose: '실제 휴대 상황(사람 몸, 걸음 흔들림)에서 전체 시스템을 최종 확인한다.',
       prep: ['안전모 위에 태그, 보조배터리는 주머니나 등', '2번과 같은 바닥 경로'],
       steps: ['출발점에 10초 서 있기 (LED 동기화)', '경로를 따라 약 0.8 m/s로 5바퀴 걷기', '도착 후 10초 정지'],
       records: '약 1분 30초 연속 기록. 2번 카트 결과와 같은 경로에서 비교.',
-      notes: ['앵커가 태그보다 높아서 몸 가림은 거의 없고, 대신 걸음에 따른 흔들림이 IMU에 들어간다', '안전모 위 태그는 카메라에서 잘 보이지만 높이가 달라 호모그래피 평면(1.2 m)과 높이 차가 생긴다. 1.75 m 평면으로 따로 변환한다', '공간 B에서도 같은 경로로 반복한다'],
+      notes: ['앵커가 태그보다 높아서 몸 가림은 거의 없고, 대신 걸음에 따른 흔들림이 IMU에 들어간다', '안전모 위 태그는 카메라에서 잘 보이지만 높이가 달라 호모그래피 평면(1.2 m)과 높이 차가 생긴다. 1.75 m 평면으로 따로 변환한다', '공간 B에서는 선반 두 개를 둘러싸는 통로 고리를 돈다 (공간 선택 B). 선반 뒤 구간에서 가려지는 앵커가 자연 NLOS 구간이다'],
       build(env) {
-        const tl = new TL(), loop = loopPath(env.room), ll = loopLen(loop), o = { z: 1.75, mount: 'helmet', person: 'walk', rec: true };
+        const tl = new TL(), loop = loopPath(env.room, env), ll = loopLen(loop), o = { z: 1.75, mount: 'helmet', person: 'walk', rec: true };
         tl.add(10, Object.assign({ path: [loop[0]], step: 0, label: '출발점 정지' }, o));
         tl.move(laps(loop, 5), 0.8, Object.assign({ step: 1, label: '걷기', lapLen: ll, laps: 5 }, o));
         tl.add(10, Object.assign({ path: [loop[0]], step: 2, label: '도착 정지' }, o));
