@@ -185,6 +185,10 @@
   .seg button:last-child { border-right: 0; }
   .space-in-view { position: absolute; left: 10px; bottom: 34px; z-index: 2; background: var(--surface); }
   .space-in-view button { font-size: 12.5px; padding: 4px 10px; }
+  .space-in-view { display: inline-flex; align-items: center; }
+  .space-in-view button:disabled { color: var(--muted); opacity: .55; cursor: not-allowed; }
+  .space-in-view button[aria-pressed="true"]:disabled { opacity: 1; color: var(--accent); }
+  .seg-note { font: 12px var(--font-mono); color: var(--muted); padding: 0 8px; }
   .seg button[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); color: var(--accent); font-weight: 600; }
   .tscroll { max-height: 360px; overflow: auto; margin: 0 -6px; }
   .wtab td { font-size: 12px; vertical-align: top; }
@@ -290,17 +294,17 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script src="data.js?v=20261002"></script>
-<script src="env-data.js?v=20261002"></script>
-<script src="env-opt.js?v=20261002"></script>
-<script src="env-presets.js?v=20261002"></script>
-<script src="geom.js?v=20261002"></script>
-<script src="tests.js?v=20261002"></script>
-<script src="view3d.js?v=20261002"></script>
-<script src="app.js?v=20261002"></script>
-<script src="bench-data.js?v=20261002"></script>
-<script src="bench-geom.js?v=20261002"></script>
-<script src="bench3d.js?v=20261002"></script>
-<script src="bench-app.js?v=20261002"></script>
+<script src="data.js?v=20261002b"></script>
+<script src="env-data.js?v=20261002b"></script>
+<script src="env-opt.js?v=20261002b"></script>
+<script src="env-presets.js?v=20261002b"></script>
+<script src="geom.js?v=20261002b"></script>
+<script src="tests.js?v=20261002b"></script>
+<script src="view3d.js?v=20261002b"></script>
+<script src="app.js?v=20261002b"></script>
+<script src="bench-data.js?v=20261002b"></script>
+<script src="bench-geom.js?v=20261002b"></script>
+<script src="bench3d.js?v=20261002b"></script>
+<script src="bench-app.js?v=20261002b"></script>
 </body>
 </html>

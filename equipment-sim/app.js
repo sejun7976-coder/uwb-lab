@@ -62,12 +62,17 @@
   // 3D 화면 안 공간 전환 (임베드에서도 보이게). 1·2·6번에서만 나온다
   const spaceBox = document.createElement('div'); spaceBox.className = 'seg space-in-view'; spaceBox.setAttribute('role', 'group'); spaceBox.setAttribute('aria-label', '공간');
   testHost.appendChild(spaceBox);
-  spaceBox.addEventListener('click', e => { const b = e.target.closest('button'); if (b) setSpace(b.dataset.sp); });
+  spaceBox.addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled && b.dataset.sp) setSpace(b.dataset.sp); });
   function setSpace(k) { if (k === st.space) return; st.space = k; st.t = 0; showDev(testHost, null); buildTest(false); renderTestSide(); }
+  // 항상 보이게: B를 쓰지 않는 테스트는 B를 비활성화하고 이유를 적는다. 7번은 공간 C
   function renderSpaceBox() {
     const test = T.list[st.test];
-    spaceBox.style.display = test.spaces ? '' : 'none';
-    if (test.spaces) spaceBox.innerHTML = test.spaces.map(k => '<button type="button" data-sp="' + k + '" aria-pressed="' + (st.space === k) + '">공간 ' + k + (k === 'B' ? ' · 장애물' : '') + '</button>').join('');
+    if (test.env === 'corridor') { spaceBox.innerHTML = '<button type="button" aria-pressed="true" disabled>공간 C · 복도</button>'; return; }
+    const ok = test.spaces || ['A'], cur = ok.includes(st.space) ? st.space : 'A';
+    spaceBox.innerHTML = ['A', 'B'].map(k => {
+      const can = ok.includes(k);
+      return '<button type="button" data-sp="' + k + '" aria-pressed="' + (cur === k) + '"' + (can ? '' : ' disabled title="공간 B는 1 · 2 · 6번에서 반복한다"') + '>공간 ' + k + (k === 'B' ? ' · 장애물' : '') + '</button>';
+    }).join('') + (ok.includes('B') ? '' : '<span class="seg-note">B는 1·2·6번</span>');
   }
   overlay(testHost,
     '<span><i style="background:var(--ok)"></i>LOS</span><span><i style="background:var(--edge)"></i>경계</span><span><i style="background:var(--block)"></i>가림</span><span><i style="background:var(--radio)"></i>Wi-Fi 전송</span>',
