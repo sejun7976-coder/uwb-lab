@@ -388,7 +388,7 @@
     h += '<div class="blk"><h3>앵커 3대만 쓸 때 (관측 부족 조건)</h3><table><thead><tr><th>조합</th><th>HDOP 95 %</th><th>측위 가능 면적</th></tr></thead><tbody>' +
       sub.slice(0, 3).concat(sub.length > 6 ? [null] : [], sub.slice(-3)).map(x => x ? '<tr><td>A' + x.ids.join('·A') + '</td><td class="' + (x.p95 <= 3 ? 'good' : x.p95 >= O.CAP ? 'bad' : '') + '">' + (x.p95 >= O.CAP ? '실패' : f2(x.p95)) + '</td><td>' + Math.round(x.cov * 100) + ' %</td></tr>' : '<tr><td colspan="3" class="t small">…</td></tr>').join('') +
       '</tbody></table><span class="small">6대로 기록한 뒤 후처리로 3대를 고르는 실험(20가지)에서 위는 가장 좋은 조합, 아래는 가장 나쁜 조합이다.</span></div>';
-    if (sp.rangeMarks) h += '<div class="blk"><h3>유효거리 측정 (7단계)</h3><span class="small">남쪽 끝 앵커 하나를 기준으로 태그를 중심선의 ' + sp.rangeMarks.filter(d => d < sp.l - 0.3).join(' · ') + ' m 표시에 차례로 두고 BLE·Wi-Fi RSSI와 수신율을 기록한다. 바닥의 주황 표시가 측정점이다.</span></div>';
+    if (sp.rangeMarks) h += '<div class="blk"><h3>유효거리 측정 (7단계)</h3><span class="small">남쪽 끝 삼각대 위 기준 노드(앵커와 같은 구성, 1.2 m)를 기준으로 태그를 중심선의 ' + sp.rangeMarks.filter(d => d < sp.l - 0.3).join(' · ') + ' m 표시에 차례로 두고 BLE·Wi-Fi RSSI와 수신율을 기록한다. 바닥의 주황 표시가 측정점이다.</span></div>';
     h += '<div class="blk" id="tag-info"></div>';
     $('space-side').innerHTML = h;
     $('csv-copy').onclick = () => { const t = csvText(); navigator.clipboard && navigator.clipboard.writeText(t).then(() => { $('csv-copy').textContent = '복사됨'; setTimeout(() => { $('csv-copy').textContent = 'anchors.csv 복사'; }, 1400); }); };
@@ -522,7 +522,7 @@
       const ev = S.BENCH.bench.evaluate(S.BENCH.setups.anchor, { esp: { x: -9, y: 53, rot: 0 }, dwm: { x: 9, y: 97, rot: 180 } }, 100);
       h += '<div class="blk"><h3>점퍼 길이 (10 cm 점퍼 기준)</h3><table><thead><tr><th>선</th><th>필요</th><th>판정</th></tr></thead><tbody>' +
         ev.wires.map(w => '<tr><td>' + esc(w.sig) + '</td><td>' + (w.need / 10).toFixed(1) + ' cm</td><td class="' + (w.status === 'ok' ? 'good' : w.status === 'over' ? 'bad' : '') + '">' + ({ ok: '여유', tight: '빠듯', over: '부족' }[w.status]) + '</td></tr>').join('') +
-        '</tbody></table><span class="small">커넥터와 꺾임 여유를 포함한 길이다. 배선 조립(3절)의 앵커 기본 배치와 같다. 3V3 선이 빠듯하면 예비 20 cm 점퍼를 쓴다.</span></div>';
+        '</tbody></table><span class="small">커넥터와 꺾임 여유를 포함한 길이다. 장비 시뮬레이터 배선 조립(2절)의 앵커 기본 배치와 같다. 3V3 선이 빠듯하면 예비 20 cm 점퍼를 쓴다.</span></div>';
     }
     h += '<div class="blk"><h3>무게 (추정)</h3><span class="small">배터리 약 225 g + 보드·선 약 30 g + 폼보드·스페이서 약 25 g ≈ <b>0.28 kg</b>. 탈착식 테이프는 하중 표기 합이 1 kg 이상이 되게 여러 장 쓴다.</span></div>';
     $('node-side').innerHTML = h;

@@ -6,7 +6,7 @@
 <title>UWB 장비 시뮬레이터</title>
 <script>
   // 노션 임베드용 주소 옵션
-  //   ?only=env | tests | bench  : 그 섹션만 보여 준다
+  //   ?only=tests | bench        : 그 섹션만 보여 준다 (공간 설계는 env.html)
   //   &view=only                 : 옵션·패널 없이 3D 화면만 (임베드 칸을 꽉 채움)
   //   &setup=anchor | tag        : 배선 조립에서 앵커 또는 태그만
   //   &zoom=1.4                  : 3D 장면 확대 배율 (0.5–3)
@@ -14,7 +14,7 @@
     try {
       var q = new URLSearchParams(location.search), h = document.documentElement;
       var o = q.get('only'), s = q.get('setup');
-      if (/^(env|tests|bench)$/.test(o || '')) h.setAttribute('data-only', o);
+      if (/^(tests|bench)$/.test(o || '')) h.setAttribute('data-only', o);
       if (o && q.get('view') === 'only') h.setAttribute('data-vonly', '');
       if (/^(anchor|tag)$/.test(s || '')) h.setAttribute('data-setup', s);
       var z = parseFloat(q.get('zoom'));
@@ -194,18 +194,18 @@
   /* 임베드 모드 (?only=) */
   html[data-only] header, html[data-only] #equip, html[data-only] footer,
   html[data-only] section > h2, html[data-only] section > .lede, html[data-only] #bench-info { display: none; }
-  html[data-only="env"] #tests, html[data-only="env"] #bench,
-  html[data-only="tests"] #env, html[data-only="tests"] #bench,
-  html[data-only="bench"] #env, html[data-only="bench"] #tests { display: none; }
+  html[data-only="tests"] #bench, html[data-only="bench"] #tests { display: none; }
   html[data-only] .wrap { max-width: none; padding: 12px 12px 16px; gap: 14px; }
   html[data-only] .view { height: clamp(360px, 62vh, 620px); }
   /* 3D 화면만 (&view=only) */
-  html[data-vonly] .wrap { padding: 0; gap: 0; }
+  html[data-vonly], html[data-vonly] body { height: 100%; overflow: hidden; }
+  html[data-vonly] .wrap { padding: 0; gap: 0; height: 100%; }
   html[data-vonly] .controls, html[data-vonly] .side, html[data-vonly] #test-info, html[data-vonly][data-setup] #bench-tabs { display: none; }
   html[data-vonly] .stage { grid-template-columns: 1fr; gap: 0; }
   html[data-vonly][data-only="bench"] .view, html[data-vonly][data-only="env"] .view { height: 100vh; min-height: 300px; border: 0; border-radius: 0; }
-  html[data-vonly][data-only="tests"] section { gap: 8px; padding: 8px; }
-  html[data-vonly][data-only="tests"] .view { height: calc(100vh - 152px); min-height: 300px; }
+  html[data-vonly][data-only="tests"] section { display: flex; flex-direction: column; gap: 8px; padding: 8px; height: 100vh; }
+  html[data-vonly][data-only="tests"] .stage { flex: 1; min-height: 0; }
+  html[data-vonly][data-only="tests"] .view { height: 100%; min-height: 0; }
   .bench-status { position: absolute; left: 10px; bottom: 50px; max-width: min(360px, calc(100% - 20px)); font: 500 12.5px/1.45 var(--font-mono); color: var(--muted); pointer-events: none; display: grid; gap: 2px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 90%, transparent); }
   .bench-status b { color: var(--ink); font-family: var(--font-sans); font-size: 14px; }
   .bench-status .bad { color: var(--block); }
@@ -222,41 +222,14 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">UWB · IMU · Wi-Fi/BLE RSS 퓨전 실험 · 3차 랩미팅</div>
+    <div class="eyebrow">착용형 UWB 태그 측위 · 테스트 재생 · 배선 조립</div>
     <h1>UWB 장비 시뮬레이터</h1>
-    <p class="lede">장비 결정 메모(2026-09-28) 기준으로 필요한 장비, 테스트 방 배치, 테스트별 진행 방식을 3D로 보여 준다. 방 크기를 바꾸면 앵커 위치, 케이블 길이, 테스트 경로가 다시 계산된다. 앵커·태그·카메라를 클릭하면 구성이 나온다. 3절에서는 보드와 점퍼선을 실제 핀 위치대로 조립해 볼 수 있다. 공간 A·B·C의 앵커 최적 배치와 노드 상세는 <a href="env.html">테스트 공간 시뮬레이터</a>에 있다.</p>
+    <p class="lede">테스트 단계마다 태그를 어떻게 두고 움직이는지 3D로 재생하고, 보드와 점퍼선을 실제 핀 위치대로 조립해 본다. 방은 공간 A(가정 6 × 8 m)와 그 최적 앵커 배치, 복도는 공간 C(가정 2.4 × 20 m)를 쓴다. 공간 설계·앵커 배치 계산·노드 상세는 <a href="env.html">테스트 공간 시뮬레이터</a>에 있다.</p>
   </header>
 
-  <section id="equip">
-    <h2>필요한 장비</h2>
-    <div class="equip" id="equip-list"></div>
-  </section>
-
-  <section id="env">
-    <h2>1. 테스트 환경</h2>
-    <p class="lede">직사각형 방의 벽 위쪽에 앵커 6대를 붙인다. 모서리 4대와 긴 벽 가운데 2대, 높이는 2.0 m와 2.5 m를 번갈아 둔다. 좌표는 벽에서 7 cm 띄운 안테나 중심 기준이다.</p>
-    <div class="controls">
-      <label class="field">가로 x (m)<input type="number" id="room-w" min="2" max="10" step="0.01" value="3.11"></label>
-      <label class="field">세로 y (m)<input type="number" id="room-l" min="2" max="15" step="0.01" value="4.69"></label>
-      <label class="field">천장 (m)<input type="number" id="room-h" min="2.6" max="5" step="0.01" value="3.04"></label>
-      <label class="field">앵커 전원
-        <select id="charger">
-          <option value="one">충전기 1대 (메모안)</option>
-          <option value="two">충전기 2대 (긴 벽 양쪽)</option>
-          <option value="each">앵커마다 어댑터 + 멀티탭</option>
-        </select>
-      </label>
-      <label class="check"><input type="checkbox" id="show-fov" checked> 카메라 화각</label>
-    </div>
-    <div class="stage">
-      <div class="view" id="env-view"></div>
-      <aside class="side" id="env-side"></aside>
-    </div>
-  </section>
-
   <section id="tests">
-    <h2>2. 테스트 시뮬레이션</h2>
-    <p class="lede">테스트마다 태그를 어떻게 두고 어떻게 움직이는지 시간 순서대로 재생한다. 태그와 각 앵커를 잇는 선은 직선이 물 팬텀이나 사람 몸을 지나면 <b style="color:var(--block)">가림</b>, 첫 번째 프레넬 영역(6.5 GHz)의 60 % 안에 걸리면 <b style="color:var(--edge)">경계</b>로 칠한다.</p>
+    <h2>1. 테스트 시뮬레이션</h2>
+    <p class="lede">테스트마다 태그를 어떻게 두고 어떻게 움직이는지 시간 순서대로 재생한다. 방은 공간 A, 7번은 공간 C다. 태그와 각 앵커를 잇는 선은 직선이 물 팬텀이나 사람 몸을 지나면 <b style="color:var(--block)">가림</b>, 첫 번째 프레넬 영역(6.5 GHz)의 60 % 안에 걸리면 <b style="color:var(--edge)">경계</b>로 칠한다.</p>
     <div class="tabs" role="tablist" id="test-tabs"></div>
     <div class="stage">
       <div class="view" id="test-view"></div>
@@ -280,7 +253,7 @@
   </section>
 
   <section id="bench">
-    <h2>3. 배선 조립</h2>
+    <h2>2. 배선 조립</h2>
     <p class="lede">ESP32-S3, DWM3000EVB, IMU, INA228을 실제 핀 위치대로 놓고 점퍼선을 이어 본다. 부품을 끌어 옮기거나 두 번 눌러 90° 돌리면 선마다 필요한 길이를 다시 계산해 구매한 10 cm 점퍼로 닿는지 알려 준다. 선이나 연결표 줄을 누르면 그 선만 강조된다.</p>
     <div class="tabs" role="tablist" id="bench-tabs"></div>
     <div class="controls">
@@ -305,8 +278,8 @@
   </section>
 
   <footer>
-    <span>근거: <code>랩미팅/장비_결정_메모.md</code>, <code>firmware/uwb_fw</code> (pins.h, config.h, README), <code>3차/2차 피드백 답변.md</code>.</span>
-    <span>배선 조립: Espressif ESP32-S3-DevKitC-1 v1.1 핀 표, Adafruit INA228·LSM6DSOX EAGLE 기판 파일(GitHub), Arduino Uno R3 쉴드 헤더 위치, <code>3차/장비_구매_계획서.docx</code>(점퍼선 10 cm).</span>
+    <span>근거: <code>연구개요.md</code>, <code>장비구매계획서.docx</code>, <code>실험/전력측정/전력측정_계획.md</code>, <code>firmware/uwb_fw</code> (pins.h, config.h, README). 앵커 배치·공유기 위치는 <code>env.html</code>과 같은 계산(env-opt.js)이다.</span>
+    <span>배선 조립: Espressif ESP32-S3-DevKitC-1 v1.1 핀 표, Adafruit INA228·LSM6DSOX EAGLE 기판 파일(GitHub), Arduino Uno R3 쉴드 헤더 위치, 구매한 점퍼선(10 cm, 예비 20 cm).</span>
     <span>시간·거리 값(점마다 60초, 카트 0.5 m/s, 태그 높이 1.2 m 등)은 예시다. 가림 판정은 팬텀과 사람을 상자로 근사한 직선 계산이고, 반사·회절은 넣지 않았다.</span>
   </footer>
 </div>
@@ -314,6 +287,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="data.js"></script>
+<script src="env-data.js"></script>
+<script src="env-opt.js"></script>
+<script src="env-presets.js"></script>
 <script src="geom.js"></script>
 <script src="tests.js"></script>
 <script src="view3d.js"></script>

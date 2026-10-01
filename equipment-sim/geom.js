@@ -1,4 +1,4 @@
-// 순수 계산: 앵커 좌표, 케이블 경로, 가림(LOS) 판정, 카메라 화각
+// 순수 계산: 가림(LOS) 판정, 카메라 화각
 (function (S) {
   const G = S.geom = {};
   const DEG = Math.PI / 180;
@@ -22,69 +22,6 @@
       const oy = a.fy === 0 ? 1 : a.fy === 1 ? -1 : 0;
       const n = Math.hypot(ox, oy);
       return { id: a.id, x: bx + ox * s, y: by + oy * s, z: a.z, bx, by, nx: ox / n, ny: oy / n };
-    });
-  };
-
-  // ---- 벽 둘레(바닥선) 좌표 s: 남서 모서리에서 반시계 방향 ----
-  G.perimS = function (room, x, y) {
-    const W = room.w, L = room.l;
-    const d = [y, W - x, L - y, x];
-    const e = d.indexOf(Math.min.apply(null, d));
-    if (e === 0) return x;
-    if (e === 1) return W + y;
-    if (e === 2) return W + L + (W - x);
-    return 2 * W + L + (L - y);
-  };
-  G.perimPoint = function (room, s) {
-    const W = room.w, L = room.l, P = 2 * (W + L);
-    s = ((s % P) + P) % P;
-    if (s <= W) return [s, 0];
-    s -= W; if (s <= L) return [W, s];
-    s -= L; if (s <= W) return [W - s, L];
-    s -= W; return [0, L - s];
-  };
-  G.perimRoute = function (room, s1, s2) {
-    const W = room.w, L = room.l, P = 2 * (W + L);
-    let d = ((s2 - s1) % P + P) % P, dir = 1;
-    if (d > P / 2) { d = P - d; dir = -1; }
-    const passed = [];
-    [0, W, W + L, 2 * W + L].forEach(c => {
-      const dc = dir > 0 ? ((c - s1) % P + P) % P : ((s1 - c) % P + P) % P;
-      if (dc > 1e-6 && dc < d - 1e-6) passed.push([dc, c]);
-    });
-    passed.sort((a, b) => a[0] - b[0]);
-    const pts = [G.perimPoint(room, s1)];
-    passed.forEach(p => pts.push(G.perimPoint(room, p[1])));
-    pts.push(G.perimPoint(room, s2));
-    return { len: d, pts };
-  };
-
-  // ---- 앵커 USB 케이블: 벽을 따라 바닥까지 내린 뒤 벽 아래를 따라 충전기까지 + 여유 0.3 m ----
-  G.chargers = function (room, mode) {
-    if (mode === 'one') return [[0, room.l / 2]];
-    if (mode === 'two') return [[0, room.l / 2], [room.w, room.l / 2]];
-    return null;
-  };
-  G.cables = function (room, anchors, mode) {
-    const FLOOR = 0.08, SLACK = 0.3, OUTLET = 0.3, IN = 0.03;
-    const ch = G.chargers(room, mode);
-    const inset = p => [Math.min(Math.max(p[0], IN), room.w - IN), Math.min(Math.max(p[1], IN), room.l - IN)];
-    return anchors.map(a => {
-      const base = inset([a.bx, a.by]);
-      if (!ch) {
-        return { id: a.id, len: a.z - OUTLET + SLACK, over: false,
-          pts: [[a.x, a.y, a.z], [base[0], base[1], a.z - 0.05], [base[0], base[1], OUTLET]] };
-      }
-      const s1 = G.perimS(room, a.bx, a.by);
-      let best = null;
-      ch.forEach((c, i) => {
-        const r = G.perimRoute(room, s1, G.perimS(room, c[0], c[1]));
-        if (!best || r.len < best.r.len) best = { r, i };
-      });
-      const total = (a.z - FLOOR) + best.r.len + SLACK;
-      const pts = [[a.x, a.y, a.z], [base[0], base[1], a.z - 0.05], [base[0], base[1], FLOOR]];
-      best.r.pts.slice(1).forEach(p => { const q = inset(p); pts.push([q[0], q[1], FLOOR]); });
-      return { id: a.id, len: total, over: total > S.CABLE_LEN, charger: best.i, pts };
     });
   };
 

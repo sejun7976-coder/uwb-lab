@@ -131,7 +131,7 @@
     }
     function pickable(o, info, group) { o.userData.pick = info; o.userData.group = group; picks.push(o); }
 
-    // ---- 환경 (방, 앵커, 카메라, 케이블) ----
+    // ---- 환경 (방, 앵커, 카메라, 공유기) ----
     view.setEnv = function (env, o) {
       o = o || {};
       clearGroup(envG); clearLabels('env');
@@ -166,16 +166,21 @@
       }
 
       if (env.desk) {
+        // 노트북은 방 밖 책상, 공유기는 방 안 받침대(앵커와 다른 위치, RSSI 기준점 겸용)
         const dx = R.w / 2 + 1.0, dy = -0.85, dm = mat(C('--cable'));
         const top = box(1.0, 0.04, 0.55, dm); top.position.copy(V(dx, dy, 0.72)); envG.add(top);
         [[-0.46, -0.24], [0.46, -0.24], [-0.46, 0.24], [0.46, 0.24]].forEach(q => envG.add(cylBetween(V(dx + q[0], dy + q[1], 0), V(dx + q[0], dy + q[1], 0.7), 0.015, mat(C('--metal')))));
-        const lap = box(0.32, 0.02, 0.22, mat(C('--board'))); lap.position.copy(V(dx - 0.2, dy, 0.75)); envG.add(lap);
-        const scr = box(0.32, 0.21, 0.01, mat(C('--board'))); scr.position.copy(V(dx - 0.2, dy - 0.11, 0.86)); scr.rotation.x = -0.25; envG.add(scr);
-        const rt = box(0.22, 0.04, 0.14, mat(C('--board'))); rt.position.copy(V(dx + 0.25, dy, 0.76)); envG.add(rt);
-        [-0.08, 0, 0.08].forEach(k => envG.add(cylBetween(V(dx + 0.25 + k, dy - 0.06, 0.78), V(dx + 0.25 + k, dy - 0.06, 0.95), 0.006, mat(C('--board')))));
-        routerPos = V(dx + 0.25, dy, 0.8);
+        const lap = box(0.32, 0.02, 0.22, mat(C('--board'))); lap.position.copy(V(dx, dy, 0.75)); envG.add(lap);
+        const scr = box(0.32, 0.21, 0.01, mat(C('--board'))); scr.position.copy(V(dx, dy - 0.11, 0.86)); scr.rotation.x = -0.25; envG.add(scr);
         pickable(top, { kind: 'desk' }, 'env');
-        label('노트북 · 공유기 (방 밖)', V(dx, dy, 1.0), '', 'env');
+        label('노트북 (방 밖)', V(dx, dy, 1.0), '', 'env');
+        const r = env.router || { x: dx + 0.25, y: dy };
+        const stand = box(0.35, 0.9, 0.3, mat(C('--spacer'))); stand.position.copy(V(r.x, r.y, 0.45)); envG.add(stand);
+        const rt = box(0.2, 0.035, 0.13, mat(C('--board'))); rt.position.copy(V(r.x, r.y, 0.92)); envG.add(rt);
+        [-0.06, 0, 0.06].forEach(k => envG.add(cylBetween(V(r.x + k, r.y + 0.05, 0.94), V(r.x + k, r.y + 0.06, 1.1), 0.006, mat(C('--board')))));
+        routerPos = V(r.x, r.y, 0.95);
+        pickable(rt, { kind: 'router' }, 'env');
+        label('공유기', V(r.x, r.y, 1.18), '', 'env');
       }
 
       // 앵커
@@ -228,30 +233,6 @@
         }
       }
 
-      // 앵커 USB 케이블과 충전기
-      if (o.cables) {
-        o.cables.forEach(cb => {
-          const path = new THREE.CurvePath();
-          for (let i = 1; i < cb.pts.length; i++) {
-            const a = cb.pts[i - 1], b = cb.pts[i];
-            path.add(new THREE.LineCurve3(V(a[0], a[1], a[2]), V(b[0], b[1], b[2])));
-          }
-          const tube = new THREE.Mesh(new THREE.TubeGeometry(path, cb.pts.length * 12, 0.009, 6, false), mat(C(cb.over ? '--block' : '--cable')));
-          envG.add(tube);
-          const p1 = cb.pts[1], p2 = cb.pts[2];
-          label(cb.len.toFixed(1) + ' m', V(p1[0], p1[1], (p1[2] + p2[2]) / 2), cb.over ? 'over' : '', 'env');
-        });
-        (o.chargers || []).forEach(c => {
-          const x = Math.min(Math.max(c[0], 0.06), R.w - 0.06), y = Math.min(Math.max(c[1], 0.06), R.l - 0.06);
-          const b = box(0.09, 0.035, 0.07, mat(C('--spacer'))); b.position.copy(V(x, y, 0.02)); envG.add(b);
-          pickable(b, { kind: 'charger' }, 'env');
-          label('USB 충전기', V(x, y, 0.1), '', 'env');
-        });
-        if (!o.chargers) o.cables.forEach(cb => {
-          const p = cb.pts[cb.pts.length - 1];
-          const b = box(0.05, 0.05, 0.03, mat(C('--spacer'))); b.position.copy(V(p[0], p[1], p[2])); envG.add(b);
-        });
-      }
       if (!o.keepCamera) view.frame();
     };
 

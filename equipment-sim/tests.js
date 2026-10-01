@@ -133,7 +133,7 @@
       id: 'calib', no: '0', name: '안테나 지연 보정', mount: '삼각대 · 태그 2.0 m', gt: false,
       tagH: { fixed: true, def: 2.0 },
       purpose: 'DWM3000의 안테나 지연 값을 맞춰 거리의 고정 오프셋을 없앤다. 다른 테스트 전에 한 번 한다.',
-      prep: ['태그를 삼각대에 올려 앵커 1과 같은 높이(2.0 m)로 맞춘다', '줄자나 레이저 거리계로 두 안테나 중심 사이를 3.000 m로 맞춘다'],
+      prep: ['태그를 삼각대에 올려 앵커 1과 같은 높이(2.0 m)로 맞춘다', '줄자로 두 안테나 중심 사이를 3.000 m로 맞춘다 (두 사람이 팽팽하게, 끝 고리 대신 10 cm 눈금 기준)'],
       steps: ['3.000 m 지점에 태그를 세우고 거리를 잰다', '사람은 방 밖으로 나가고 60초 기록', '보정값 계산 후 태그와 모든 앵커에 입력'],
       records: '앵커 1과의 거리 약 600개. 나머지 앵커도 켜져 있으면 함께 기록된다.',
       notes: ['<code>python tools/uwb_monitor.py calib 로그.csv --anchor 1 --true-dist 3.000</code> → 시리얼에서 <code>ant 값</code>', '삼각대가 2.0 m까지 안 올라가면 앵커 1을 벽에서 떼어 태그와 같은 높이에서 보정한 뒤 다시 붙인다'],
@@ -160,7 +160,7 @@
       prep: ['바닥에 15점(3 × 5 격자)을 테이프로 표시하고 좌표를 줄자로 실측한다', '태그 높이는 모든 점에서 같게 (호모그래피 평면)'],
       steps: ['1번 점에 삼각대를 세운다', '방 밖으로 나가 60초 기록 (LED 동기화 점멸 포함)', '다음 점으로 옮긴다 (20초, 기록 안 함)'],
       records: '점마다 UWB 600사이클(앵커 6개 거리 + 수신 진단값), IMU 약 12,500샘플, Wi-Fi·BLE RSSI.',
-      notes: ['측정 중 사람이 방 안에 있으면 몸이 가림이 된다. 기록할 때는 방 밖에서 노트북으로 확인', '카메라 화각 밖인 점은 GT 검증에서 빠진다. 3D에서 주황 점 번호와 오른쪽 GT 비율을 확인'],
+      notes: ['측정 중 사람이 방 안에 있으면 몸이 가림이 된다. 기록할 때는 방 밖에서 노트북으로 확인', '카메라 화각 밖인 점은 GT 검증에서 빠진다. 3D에서 주황 점 번호와 오른쪽 GT 비율을 확인', '관측 부족 조건(앵커 6 → 4 → 3 → 2)은 따로 실험하지 않고 이 기록에서 앵커를 빼서 만든다', '공간 B(장애물 공간)에서 같은 순서로 한 번 더 한다 (테스트 공간 시뮬레이터의 B 배치)'],
       build(env, P) {
         const tl = new TL(), pts = T.gridPoints(env.room), z = P.tagH;
         tl.add(30, { path: [pts[0]], z, person: 'carry', step: 0, label: '1번 점에 삼각대 설치' });
@@ -178,7 +178,7 @@
       prep: ['벽에서 0.6 m 안쪽 사각 경로를 바닥 테이프로 표시', '카트 위 삼각대에 태그, 사람은 뒤에서 민다'],
       steps: ['출발점에서 20초 정지 (IMU 정지 구간, LED 동기화)', '시계 방향 5바퀴, 약 0.5 m/s', '제자리에서 돌아 반시계 방향 5바퀴', '도착 후 10초 정지'],
       records: '전체 약 4분 연속 기록. 바퀴마다 같은 경로라 바퀴 사이 편차도 볼 수 있다.',
-      notes: ['미는 사람 몸이 뒤쪽 앵커를 가린다. 오른쪽 앵커별 가림 비율 참고', '방향을 반대로도 돌면 몸 가림이 특정 앵커에 몰리지 않는다', '가림을 줄이려면 손잡이를 길게 하거나, 몸 가림을 조건으로 명시'],
+      notes: ['미는 사람 몸이 뒤쪽 앵커를 가린다. 오른쪽 앵커별 가림 비율 참고', '방향을 반대로도 돌면 몸 가림이 특정 앵커에 몰리지 않는다', '가림을 줄이려면 손잡이를 길게 하거나, 몸 가림을 조건으로 명시', '공간 B에서도 같은 경로로 반복한다'],
       build(env, P) {
         const tl = new TL(), loop = loopPath(env.room), ll = loopLen(loop), z = P.tagH, o = { z, mount: 'cart', person: 'push', rec: true };
         const rev = loop.slice().reverse();
@@ -234,34 +234,39 @@
       }
     },
     {
-      id: 'power', no: '5', name: '전력 측정', mount: '삼각대 · INA228 ①②', gt: false,
+      id: 'power', no: '5', name: '전력 분해', mount: '삼각대 · INA228 ①②', gt: false,
       tagH: { def: 1.2, min: 0.8, max: 1.6 },
-      purpose: '조건별 평균 전력, 위치 1회당 에너지, 500 mAh 기준 사용 시간을 잰다. 태그만 잰다.',
-      prep: ['책상에서 먼저 알고 있는 부하(3.3 V / 33 Ω ≈ 100 mA)로 INA228 오차 확인', 'INA228 ① 보조배터리 → 태그 5 V, ② DWM3000 3V3 전원선', '펌웨어 UWB_LEDS 0 (쉴드 LED 끔)'],
-      steps: ['태그를 방 가운데 삼각대에 두고 INA228 연결 확인', '조건별 5분 기록: Wi-Fi 끄고 PSRAM에 저장', 'Wi-Fi를 켜고 업로드 (이 구간 에너지는 빼고 계산)'],
-      records: '조건 5가지(UWB 단독 · +IMU · +Wi-Fi 스캔 · +BLE 스캔 · 전부) × 5분. INA228 에너지 누적 레지스터로 조건별 총 에너지.',
-      notes: ['Wi-Fi·BLE 몫은 전원선으로 나눌 수 없어서 켠 조건과 끈 조건의 차이로 추정', '측정 주기를 바꾼 조건은 같은 순서로 한 번 더', 'PSRAM 기록은 약 5분 분량이 한계'],
+      purpose: '기능을 하나씩 켜고 끈 조건(P0–P8)의 전력 차이로 UWB·IMU·Wi-Fi·BLE·전송 몫을 나눈다. 태그만 잰다. 정확도–에너지 비교의 전력표가 된다.',
+      prep: ['사전 검증: 영점 1분, 알고 있는 저항 부하(②는 3.3 V / 33 Ω, ①은 5 V / 47 Ω)와 멀티미터로 1–2 % 안인지 확인', 'INA228 ① 보조배터리 → 태그 5 V 입력, ② ESP32 3V3 → DWM3000 3V3', '보조배터리 완충·저전류 모드, 모델명 기록. 태그 USB는 뺀다', '앵커 6대와 AP·BLE 광고를 본 실험과 같게 켠다. 사람은 방 밖, 휴대폰 무선 끔'],
+      steps: ['BOOT 버튼으로 자동 시퀀스 시작, 2분 예열 (기록 안 함)', '조건마다 설정 → 10초 안정화 → 누적 초기화 → 60초 기록', 'P0–P8 9조건 × 3회, 미리 섞은 순서 (순서는 로그에 남김)', '끝나면 Wi-Fi를 켜고 PSRAM 기록을 노트북에 올린다'],
+      records: '9조건 × 3회 × 60초, INA228 ①② 20 Hz 전력과 조건별 총 에너지(누적 레지스터), 이벤트 수(UWB 사이클·IMU 샘플·Wi-Fi 스캔·BLE 수신). 약 32분.',
+      notes: ['P0 기준 · P1 UWB · P2 +IMU · P3 +Wi-Fi · P4 +BLE · P5 Wi-Fi+BLE · P6 +실시간 전송 · P7 Wi-Fi만 · P8 BLE만', 'Wi-Fi·BLE·IMU 몫은 전원선으로 나눌 수 없어서 켠 조건과 끈 조건의 차이로 구한다', 'P6만 실시간 전송을 켠다. 나머지는 PSRAM에 저장해 전송 비용이 섞이지 않게 한다', '측정 주기를 바꾼 조건(UWB 5·10·20 Hz 등)은 같은 방식으로 따로 한다', '상세: <code>실험/전력측정/전력측정_계획.md</code>'],
       build(env, P) {
         const tl = new TL(), p = [env.room.w / 2, env.room.l / 2], z = P.tagH;
-        const combos = ['UWB 단독', 'UWB + IMU', 'UWB + Wi-Fi 스캔', 'UWB + BLE 스캔', '전부'];
+        const C = ['P0 기준', 'P1 UWB', 'P2 +IMU', 'P3 +Wi-Fi', 'P4 +BLE', 'P5 Wi-Fi+BLE', 'P6 +전송', 'P7 Wi-Fi만', 'P8 BLE만'];
+        const order = [];
+        for (let r = 0; r < 3; r++) C.forEach((c, i) => order.push(i));
+        for (let i = order.length - 1, s = 11; i > 0; i--) { s = (s * 1103515245 + 12345) % 2147483648; const j = s % (i + 1); const t = order[i]; order[i] = order[j]; order[j] = t; }
         tl.add(30, { path: [p], z, person: 'carry', step: 0, label: '태그 설치, INA228 확인' });
-        combos.forEach((c, i) => {
-          tl.add(300, { path: [p], z, rec: true, stream: false, step: 1, label: (i + 1) + '/5 ' + c + ' · 5분' });
-          tl.add(30, { path: [p], z, stream: true, upload: true, step: 2, label: '업로드' });
+        tl.add(120, { path: [p], z, stream: false, step: 0, label: '예열 2분 (기록 안 함)' });
+        order.forEach((ci, k) => {
+          tl.add(10, { path: [p], z, stream: false, step: 1, label: (k + 1) + '/27 ' + C[ci] + ' · 안정화' });
+          tl.add(60, { path: [p], z, rec: true, stream: ci === 6, step: 1, label: (k + 1) + '/27 ' + C[ci] + ' · 60초 기록' });
         });
+        tl.add(60, { path: [p], z, stream: true, upload: true, step: 3, label: 'PSRAM 기록 업로드' });
         return { tl, points: [p] };
       }
     },
     {
-      id: 'helmet', no: '6', name: '헬멧 보행', mount: '헬멧 · 태그 약 1.8 m', gt: true,
-      tagH: { fixed: true, def: 1.8 },
+      id: 'helmet', no: '6', name: '안전모 보행', mount: '안전모 · 태그 약 1.75 m', gt: true,
+      tagH: { fixed: true, def: 1.75 },
       purpose: '실제 휴대 상황(사람 몸, 걸음 흔들림)에서 전체 시스템을 최종 확인한다.',
-      prep: ['헬멧 위에 태그, 보조배터리는 주머니나 등', '2번과 같은 바닥 경로'],
+      prep: ['안전모 위에 태그, 보조배터리는 주머니나 등', '2번과 같은 바닥 경로'],
       steps: ['출발점에 10초 서 있기 (LED 동기화)', '경로를 따라 약 0.8 m/s로 5바퀴 걷기', '도착 후 10초 정지'],
       records: '약 1분 30초 연속 기록. 2번 카트 결과와 같은 경로에서 비교.',
-      notes: ['앵커가 태그보다 높아서 몸 가림은 거의 없고, 대신 걸음에 따른 흔들림이 IMU에 들어간다', '헬멧 위 태그는 카메라에서 잘 보이지만 머리 높이가 달라 호모그래피 평면(1.2 m)과 높이 차가 생긴다'],
+      notes: ['앵커가 태그보다 높아서 몸 가림은 거의 없고, 대신 걸음에 따른 흔들림이 IMU에 들어간다', '안전모 위 태그는 카메라에서 잘 보이지만 높이가 달라 호모그래피 평면(1.2 m)과 높이 차가 생긴다. 1.75 m 평면으로 따로 변환한다', '공간 B에서도 같은 경로로 반복한다'],
       build(env) {
-        const tl = new TL(), loop = loopPath(env.room), ll = loopLen(loop), o = { z: 1.8, mount: 'helmet', person: 'walk', rec: true };
+        const tl = new TL(), loop = loopPath(env.room), ll = loopLen(loop), o = { z: 1.75, mount: 'helmet', person: 'walk', rec: true };
         tl.add(10, Object.assign({ path: [loop[0]], step: 0, label: '출발점 정지' }, o));
         tl.move(laps(loop, 5), 0.8, Object.assign({ step: 1, label: '걷기', lapLen: ll, laps: 5 }, o));
         tl.add(10, Object.assign({ path: [loop[0]], step: 2, label: '도착 정지' }, o));
@@ -273,14 +278,15 @@
       tagH: { fixed: true, def: 1.2 },
       env: 'corridor',
       purpose: 'BLE·Wi-Fi가 몇 m까지 쓸모 있는지, 거리별 RSSI와 수신율을 잰다. 테스트 방이 작아서 복도에서 따로 한다.',
-      prep: ['길이 16 m 이상 복도 (그림은 폭 2 m 예시)', '기준 ESP 1대(앵커와 같은 구성)를 삼각대 1.2 m에', '태그도 같은 높이'],
-      steps: ['거리 d에서 30초 기록', '1 m 멀어진다 (1 → 15 m)'],
-      records: '거리 15개 × 30초. 거리별 RSSI 평균·분산, 수신율. UWB 거리도 같이 남아 기준으로 쓴다.',
+      prep: ['직선 복도 15 m 이상 (그림은 공간 C 가정 2.4 × 20 m)', '기준 노드 1대(앵커와 같은 구성)를 남쪽 끝 삼각대 1.2 m에', '태그도 같은 높이, 거리 표시는 줄자로 바닥에'],
+      steps: ['거리 d 표시에서 30초 기록', '다음 표시로 옮긴다 (1 · 2 · 3 · 5 · 7.5 · 10 · 12.5 · 15 · 17.5 m)'],
+      records: '거리 9곳 × 30초. 거리별 RSSI 평균·분산, 수신율. 거리를 로그 간격에 가깝게 잡아 경로손실 모델을 맞추기 좋다. UWB 거리도 같이 남아 기준으로 쓴다.',
       notes: ['사람은 태그 뒤쪽 옆에 서서 기준점과 태그 사이를 막지 않는다', '복도 폭·벽 재질에 따라 결과가 달라서 장소를 함께 기록'],
       build(env) {
         const tl = new TL(), a = env.anchors[0];
         let prev = null;
-        for (let d = 1; d <= 15; d++) {
+        const marks = (S.ENV ? S.ENV.SPACES.C.rangeMarks : [1, 2, 3, 5, 7.5, 10, 12.5, 15]).filter(d => a.y + d < env.room.l - 0.5);
+        for (const d of marks) {
           const p = [a.x, a.y + d];
           if (prev) tl.move([prev, p], 0.3, { z: 1.2, person: 'carry', step: 1, label: d + ' m로 이동' });
           tl.add(30, { path: [p], z: 1.2, rec: true, person: 'at', personAt: [a.x + 0.7, p[1] + 1.2], step: 0, label: d + ' m 기록' });
@@ -292,8 +298,8 @@
   ];
 
   T.corridorEnv = function () {
-    const room = { w: 2.0, l: 17.0, h: 2.7 };
-    return { room, corridor: true, anchors: [{ id: 1, x: 1.0, y: 0.5, z: 1.2, bx: 1.0, by: 0, nx: 0, ny: 1, stand: true }], camera: null, desk: false };
+    const C = S.ENV ? S.ENV.SPACES.C : { w: 2.4, l: 20, h: 2.7 }, room = { w: C.w, l: C.l, h: C.h };
+    return { room, corridor: true, anchors: [{ id: 1, x: room.w / 2, y: 0.5, z: 1.2, bx: room.w / 2, by: 0, nx: 0, ny: 1, stand: true }], camera: null, desk: false };
   };
 
   T.run = function (test, env, P) {
