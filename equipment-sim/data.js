@@ -35,14 +35,14 @@ window.SIM = window.SIM || {};
     tag: {
       role: 'UWB 거리 + IMU + Wi-Fi·BLE RSSI 수신, Wi-Fi로 노트북에 전송',
       parts: [
-        'ESP32-S3 N16R8 보드 + DWM3000EVB (앵커와 같은 9가닥)',
+        'ESP32-S3 N16R8 보드 + DWM3000EVB (앵커와 같은 연결, 만능기판 뒷면 납땜)',
         'ISM330DHCX: SPI3 GPIO 15·16·17·18, INT1 → 7',
         'INA228 ×2: I2C SDA 8 · SCL 9 (주소 0x40 / A0 점퍼 0x41)',
-        '하프 브레드보드: IMU·INA228 ①② + 3V3·GND 레일',
+        '9 × 15 cm 만능기판 + 암 소켓: 모듈을 꽂아 쓰고 고장 나면 교체',
         'INA228 VBUS ↔ VIN+ 연결 (하이사이드 측정)',
         '보조배터리 → USB 5 V 브레이크아웃 → INA228 ① → 보드 5V',
         '보드 3V3 → INA228 ② → DWM3000 3V3',
-        '동기화 LED (선택): GPIO14 → 220 Ω'
+        '동기화 LED: GPIO14 → 220 Ω (GT 카메라 시간 맞춤)'
       ]
     },
     camera: {
