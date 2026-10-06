@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>태그 만능기판 조립</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2715%27 fill=%27%231B6A87%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%275%27 fill=%27white%27/%3E%3Cpath d=%27M16 3a13 13 0 0 1 13 13M16 8a8 8 0 0 1 8 8%27 stroke=%27white%27 stroke-width=%272.2%27 fill=%27none%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #F3F6F5; --surface: #FFFFFF; --ink: #15201C; --muted: #5A6962; --line: #D2DBD7;
+    --accent: #1B6A87; --warn: #B42318;
+    --ok: #2E7D4F; --edge: #B7791F; --block: #C2362B;
+    --scene: #E6ECEA; --floor: #D9E1DE; --wall: #7F958D; --grid: #BAC7C2;
+    --board: #1E2623; --spacer: #F4F4EF; --tag: #E0662A; --phantom: #3D7CC9;
+    --person: #8C979B; --tape: #E8A33D; --cable: #6B7772; --radio: #7A5AC8; --metal: #A9B4B0;
+    --w-spi: #1F6FD1; --w-ctl: #8E44AD; --w-imu: #14907F; --w-i2c: #C9960C; --w-3v3: #D7263D; --w-5v: #EE7A1F; --w-gnd: #2B2B2B; --w-link: #8D5A3B;
+    --font-sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0F1513; --surface: #151D1A; --ink: #E1E8E4; --muted: #93A39B; --line: #2A3632;
+      --accent: #6BBFDD; --warn: #F97066; --ok: #5CC689; --edge: #E2B04A; --block: #F07167;
+      --scene: #121A17; --floor: #1C2623; --wall: #587068; --grid: #2C3A35;
+      --board: #0B0F0D; --spacer: #C9CCC4; --tag: #F08A4B; --phantom: #5E9BE0;
+      --person: #7D878C; --tape: #D9A441; --cable: #8E9A95; --radio: #A68BEA; --metal: #7F8A86;
+      --w-spi: #5AA2F0; --w-ctl: #B37FE0; --w-imu: #3CC7B5; --w-i2c: #EAC54F; --w-3v3: #F0506A; --w-5v: #F79A53; --w-gnd: #B8C2BE; --w-link: #C99270;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0F1513; --surface: #151D1A; --ink: #E1E8E4; --muted: #93A39B; --line: #2A3632;
+    --accent: #6BBFDD; --warn: #F97066; --ok: #5CC689; --edge: #E2B04A; --block: #F07167;
+    --scene: #121A17; --floor: #1C2623; --wall: #587068; --grid: #2C3A35;
+    --board: #0B0F0D; --spacer: #C9CCC4; --tag: #F08A4B; --phantom: #5E9BE0;
+    --person: #7D878C; --tape: #D9A441; --cable: #8E9A95; --radio: #A68BEA; --metal: #7F8A86;
+    --w-spi: #5AA2F0; --w-ctl: #B37FE0; --w-imu: #3CC7B5; --w-i2c: #EAC54F; --w-3v3: #F0506A; --w-5v: #F79A53; --w-gnd: #B8C2BE; --w-link: #C99270;
+  }
+
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 var(--font-sans); }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 32px 20px 64px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 44px; }
+  header { display: grid; gap: 8px; }
+  .eyebrow { font: 500 12px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: 30px; line-height: 1.25; margin: 0; font-weight: 600; text-wrap: balance; }
+  h2 { font-size: 21px; line-height: 1.3; margin: 0; font-weight: 600; text-wrap: balance; }
+  h3 { font-size: 14px; margin: 0; font-weight: 600; }
+  p { margin: 0; max-width: 72ch; }
+  a { color: var(--accent); }
+  .lede { color: var(--muted); }
+  code, .mono { font-family: var(--font-mono); font-size: .92em; }
+  section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tab { font: 13.5px var(--font-sans); padding: 6px 11px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; gap: 7px; align-items: baseline; }
+  .tab .no { font: 500 12px var(--font-mono); color: var(--muted); }
+  .tab[aria-selected="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+  .tab[aria-selected="true"] .no { color: var(--accent); }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+  button { font: inherit; font-size: 13.5px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+  .seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; }
+  .seg button { border-radius: 0; margin-left: -1px; }
+  .seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+  .seg button:last-child { border-radius: 0 6px 6px 0; }
+  .seg button[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); position: relative; }
+  .check { display: flex; gap: 6px; align-items: center; font-size: 13.5px; cursor: pointer; }
+  input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: 16px; align-items: start; }
+  .view { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--scene); }
+  #perf-view svg { display: block; width: 100%; height: auto; }
+  #perf-3d { position: relative; height: clamp(380px, 62vh, 620px); touch-action: none; }
+  #perf-3d canvas { display: block; width: 100%; height: 100%; }
+  .labels3 { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .lbl3 { position: absolute; left: 0; top: 0; white-space: nowrap; font: 600 11px/1.3 var(--font-sans); padding: 1px 6px; border-radius: 4px; background: color-mix(in srgb, var(--surface) 86%, transparent); color: var(--ink); border: 1px solid var(--line); }
+  .lbl3.new { border-color: var(--accent); color: var(--accent); }
+  .lbl3.ant { color: var(--ok); }
+  .lbl3.warn { color: var(--edge); }
+  .lbl3.edge { background: none; border: 0; color: var(--muted); font-weight: 500; }
+  .hint3 { position: absolute; left: 10px; top: 8px; font-size: 12px; color: var(--muted); pointer-events: none; }
+  .legend { position: absolute; right: 10px; bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: end; font: 12px var(--font-mono); color: var(--muted); pointer-events: none; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend i { width: 14px; height: 4px; border-radius: 2px; display: inline-block; outline: 1px solid color-mix(in srgb, var(--ink) 25%, transparent); }
+  .tip { position: absolute; z-index: 2; pointer-events: none; max-width: 240px; font-size: 12.5px; line-height: 1.45; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; box-shadow: 0 4px 14px rgb(0 0 0 / .15); }
+  .warnc { color: var(--block); }
+
+  /* SVG 글자 */
+  #perf-view text { font-family: var(--font-sans); }
+  .t-edge { font-size: 2.6px; fill: var(--muted); font-weight: 500; }
+  .t-face { font-size: 2.8px; fill: var(--ink); font-weight: 600; }
+  .t-keep { font-size: 2.1px; fill: #FFB4A8; font-weight: 600; }
+  .t-zone { font-size: 2.2px; fill: rgb(255 255 255 / .8); }
+  .t-sock { font-size: 2.1px; fill: #F4F7F5; font-weight: 600; paint-order: stroke; stroke: #1E4A2E; stroke-width: 0.6px; }
+  .t-pin { font-size: 1.35px; fill: #DCE7E0; font-family: var(--font-mono) !important; }
+  .t-mod { font-size: 2.5px; fill: #E8ECEE; font-weight: 600; }
+  .t-chip { font-size: 2.2px; fill: #343A40; font-weight: 600; }
+  .t-tiny { font-size: 1.7px; fill: #C9D2CD; }
+  .t-tiny.dark { fill: #343A40; }
+  .t-tiny.warn { fill: #FFD166; }
+  .t-tiny.red, .t-mod.red { fill: #C8323C; }
+  .new { animation: blink 1.4s ease-in-out 2; }
+  .newj { animation: blink 1.4s ease-in-out 2; }
+  .hi { filter: drop-shadow(0 0 0.8px #fff); }
+  .xray polyline { opacity: .82; }
+  @keyframes blink { 50% { opacity: .25; } }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) { .new, .newj { animation: none; } polyline { animation: none !important; stroke-dasharray: none !important; } }
+
+  /* 사이드 */
+  .side { display: grid; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  .blk { display: grid; gap: 8px; }
+  .blk + .blk { border-top: 1px solid var(--line); padding-top: 12px; }
+  .stepno { font: 500 12px var(--font-mono); color: var(--accent); }
+  .steph { font-size: 17px; }
+  ol.steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; line-height: 1.55; }
+  ul.chk { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  td.sans { font-family: var(--font-sans); }
+  td.good { color: var(--ok); }
+  tr:last-child td { border-bottom: 0; }
+  .small { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+  .muted { color: var(--muted); }
+  i.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; outline: 1px solid color-mix(in srgb, var(--ink) 25%, transparent); }
+  .netlist { display: grid; gap: 4px; }
+  .netrow { display: grid; grid-template-columns: auto 6px 1fr; gap: 8px; align-items: start; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font-size: 13.5px; }
+  .netrow > i { width: 6px; height: 100%; min-height: 18px; border-radius: 3px; outline: 1px solid color-mix(in srgb, var(--ink) 20%, transparent); }
+  .netrow.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+  .netrow.done b { text-decoration: line-through; color: var(--muted); }
+  .netrow input { margin-top: 3px; }
+  .netrow .len { font: 12px var(--font-mono); color: var(--muted); }
+
+  /* 구매 목록 */
+  .sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
+  .stat span { font-size: 12.5px; color: var(--muted); }
+  .stat b { font: 600 22px var(--font-mono); }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
+  table.bom { min-width: 900px; font-size: 13.5px; }
+  table.bom td { padding: 7px 6px; }
+  table.bom .r { text-align: right; white-space: nowrap; }
+  table.bom tr.tot td { border-top: 2px solid var(--line); }
+  table.bom a { color: var(--ink); text-decoration-color: var(--line); }
+  table.bom a:hover { color: var(--accent); }
+  .pill { display: inline-block; font: 500 11px/1.6 var(--font-mono); padding: 0 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .pill.must { color: var(--block); border-color: currentColor; }
+  .pill.sug { color: var(--accent); border-color: currentColor; }
+  .pill.have { color: var(--ok); border-color: currentColor; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; }
+  .card ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+  footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 4px; }
+  @media (max-width: 900px) {
+    .wrap { padding: 24px 16px 48px; }
+    .stage { grid-template-columns: 1fr; }
+    h1 { font-size: 25px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">착용형 UWB 태그 · 만능기판 + 소켓</div>
+    <h1>태그 만능기판 조립</h1>
+    <p class="lede">태그를 브레드보드 대신 9 × 15 cm 만능기판에 소켓을 납땜해 만드는 순서를 단계별로 보여 준다. 모듈은 소켓에 꽂아서 뺄 수 있고, 배선은 뒷면에 납땜한다. 핀 위치는 <a href="index.html?only=bench&amp;setup=tag">배선 조립 시뮬레이터</a>와 같은 부품 좌표로 계산했고, 연결(넷)도 같다.</p>
+  </header>
+
+  <section id="build">
+    <h2>1. 조립 순서</h2>
+    <div class="tabs" role="tablist" id="perf-tabs"></div>
+    <div class="controls">
+      <button type="button" id="perf-prev">← 이전</button>
+      <button type="button" class="primary" id="perf-next">다음 →</button>
+      <div class="seg" id="perf-dim" role="group" aria-label="2D·3D">
+        <button type="button" data-d="2d">2D</button>
+        <button type="button" data-d="3d">3D</button>
+      </div>
+      <div class="seg" id="perf-face" role="group" aria-label="보는 면">
+        <button type="button" data-v="top">앞면</button>
+        <button type="button" data-v="bottom">뒷면 (뒤집은 모습)</button>
+        <button type="button" data-v="both">앞면 + 배선 투시</button>
+      </div>
+      <label class="check"><input type="checkbox" id="perf-mods"> 모듈 꽂은 모습</label>
+      <button type="button" id="perf-replay">배선 다시 그리기</button>
+    </div>
+    <div class="stage">
+      <div class="view" id="perf-wrap">
+        <div id="perf-view"></div>
+        <div id="perf-3d" hidden></div>
+        <div class="hint3" id="perf-3dhint" hidden>드래그 회전 · 휠 확대 · 오른쪽 드래그 이동</div>
+        <div class="legend" id="perf-legend"></div>
+        <div class="tip" id="perf-tip" hidden></div>
+      </div>
+      <aside class="side" id="perf-side"></aside>
+    </div>
+    <p class="small">2D에서 구멍에 마우스를 올리면 그 자리의 핀·연결이 나온다. 3D에서는 앞면 · 뒷면 · 투시 버튼이 시점을 바꾼다. ← → 키로 단계를 넘긴다. 배선 경로는 구멍 격자 위 최단 경로로 자동 계산한 예시다.</p>
+  </section>
+
+  <section id="bom">
+    <h2>2. 추가로 살 것</h2>
+    <p class="lede">원래 구매 계획에 없던 것만 적었다. 장비구매계획서 14–16번(Notion 01 C7–C11)에 반영했고, 프로토 쉴드는 필요할 때만 산다. 납땜 도구는 보유해서 뺐다. ESP32 보드는 계획대로 핀헤더가 납땜된 것을 산다 (소켓에 꽂는 방식이라 그대로 쓴다).</p>
+    <p class="small" id="bom-src"></p>
+    <div class="sum" id="bom-sum"></div>
+    <div class="tablewrap" id="bom-table"></div>
+    <div class="cards">
+      <div class="card"><h3>태그에서 필요 없어지는 것</h3><ul id="bom-drop"></ul></div>
+      <div class="card"><h3>배치에서 정한 것</h3>
+        <ul>
+          <li>DWM3000EVB는 실물처럼 모듈·안테나가 우노 USB 잭 쪽 끝에 있고 안테나가 보드 밖으로 나온다. 그래서 그쪽을 기판 왼쪽 가장자리 밖으로 내고, ESP32 안테나는 오른쪽 가장자리에 둔다.</li>
+          <li>DWM 디지털 헤더는 기판 위쪽 가장자리, 전원 헤더는 아래(ESP32 쪽)에 온다.</li>
+          <li>ESP32 신호 핀(J1)이 위쪽(DWM·브레이크아웃 쪽)을 본다. UWB SPI 선은 DWM 아래를 지나 15 cm 안쪽으로 끝난다.</li>
+          <li>INA228 ②는 DWM 전원 헤더 가까이, ①은 전원 입력 가까이.</li>
+          <li>IMU SPI 다섯 가닥 중 세 가닥은 ESP32 핀과 같은 열이라 직선으로 끝난다.</li>
+        </ul>
+      </div>
+      <div class="card"><h3>실물로 먼저 확인할 것</h3>
+        <ul>
+          <li>DWM3000EVB D7–D0 소켓: 다리를 굽혀 꽂았을 때 보드가 무리 없이 들어가는지. 어려우면 우노 프로토 쉴드 기판을 어댑터로 쓴다.</li>
+          <li>DWM 모듈·안테나·J1 위치는 Qorvo DWS3000(v1.2) 보드 사진에서 읽은 추정값이다. 안테나가 보드 밖으로 나오는 길이(약 9 mm)도 실물로 다시 잰다.</li>
+          <li>만능기판은 디바이스마트 PCB-0915S(54 × 33홀) 기준으로 배치했다. 다른 제품이면 구멍 수가 조금 다를 수 있다.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>근거: <code>bench-data.js</code> (ESP32-S3-DevKitC-1 핀 표, Arduino Uno R3 쉴드 헤더 위치, Adafruit INA228·ISM330DHCX 기판 파일), <code>firmware/uwb_fw/README.md</code> 2절 배선, <code>장비구매계획서.docx</code>, 디바이스마트 상품 페이지(가격, 2026-10-04).</span>
+    <span>D7–D0 소켓이 격자에서 1.016 mm 어긋나는 값은 우노 헤더 좌표(D8 41.656 mm, D7 48.26 mm)에서 계산했다. 선 길이·경로는 계산 예시이고 실측이 아니다.</span>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="bench-data.js?v=20261004c"></script>
+<script src="perf-data.js?v=20261004c"></script>
+<script src="perf-route.js?v=20261004c"></script>
+<script src="perf3d.js?v=20261004c"></script>
+<script src="perf-app.js?v=20261004c"></script>
+</body>
+</html>
