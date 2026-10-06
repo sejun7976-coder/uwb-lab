@@ -40,7 +40,7 @@
     o.position.set(x, y, z); if (name) o.userData.part = name; g.add(o); return o;
   }
 
-  // ---- 보조배터리 (샤오미 PLM13ZM 근사: 147.8 × 73.9 × 15.4 mm, 포트는 왼쪽 짧은 변) ----
+  // ---- 보조배터리 (NEXTU 1006QPB MINI: 96 × 64 × 16 mm, 포트는 왼쪽 짧은 변으로 근사) ----
   function bank(g, cx, cy, z0) {
     const L = P.bank.L, W = P.bank.W, T = P.bank.T;
     plateWithTop(g, L, W, T, cx, cy, z0 + T / 2, '#2a3036', (c, w, h) => {
@@ -49,12 +49,12 @@
       for (let i = 0; i < 4; i++) { c.fillStyle = '#6fd3ff'; c.beginPath(); c.arc(w * 0.1, h * (0.3 + i * 0.13), h * 0.022, 0, 7); c.fill(); }
     }, '보조배터리');
     const port = mat('#c9ced2', { metalness: 0.6, roughness: 0.35 }), dark = mat('#111417');
-    [[-12, 'USB-A'], [6, 'USB-A'], [22, 'USB-C']].forEach(([dy, k]) => {
+    [[-10, 'USB-A'], [10, 'USB-C']].forEach(([dy, k]) => {
       const pw = k === 'USB-A' ? 4.6 : 3.2, ph = k === 'USB-A' ? 12.2 : 8.6;
       boxAt(g, 1.2, ph, pw, cx - L / 2 - 0.4, cy + dy, z0 + T / 2, port);
       boxAt(g, 1.4, ph - 2, pw - 1.6, cx - L / 2 - 0.5, cy + dy, z0 + T / 2, dark);
     });
-    return { portA: [cx - L / 2 - 1, cy - 12, z0 + T / 2] };
+    return { portA: [cx - L / 2 - 1, cy - 10, z0 + T / 2] };
   }
 
   // ---- ESP32-S3-DevKitC-1 호환 (70 × 28 mm 근사, 모듈 = +u 끝, USB-C 2개 = −u 끝) ----
@@ -140,7 +140,7 @@
     boxAt(g, P.plate.w, P.plate.h, P.plate.t, 0, 0, PLATE_Z0 + P.plate.t / 2, plateM, '폼보드 5 mm (A4 210 × 297)');
     // 배터리 + 벨크로
     const lay = E.NODE_LAYOUT, bk = lay.bank;
-    [-30, 30].forEach(dx => boxAt(g, 50, 20, 2, bk.x + dx, bk.y, PLATE_Z1 + 1, mat('#3a3f44'), '벨크로 (배터리 탈착)'));
+    [-22, 22].forEach(dx => boxAt(g, 36, 20, 2, bk.x + dx, bk.y, PLATE_Z1 + 1, mat('#3a3f44'), '벨크로 (배터리 탈착)'));
     const bp = bank(g, bk.x, bk.y, PLATE_Z1 + 2);
 
     let antenna, espPose, usbIn;
@@ -169,7 +169,7 @@
       ? [[a0[0] - 14, a0[1], a0[2]], [fx, a0[1] + 10, zc], [fx, uy - 30, zc], [fx + 20, uy, uz + 4], [ux - 10, uy, uz]]
       : [[a0[0] - 14, a0[1], a0[2]], [fx, a0[1] + 10, zc], [fx, -10, zc], [ux - 6, uy - 24, uz + 6], [ux, uy - 10, uz]];
     boxAt(g, 16, 13, 7, a0[0] - 8, a0[1], a0[2], plug, 'USB-A 플러그');
-    tube(g, path, 1.9, cableM).userData.part = 'USB A→C 케이블 (약 25 cm)';
+    tube(g, path, 1.9, cableM).userData.part = 'USB A→C 케이블 (약 20 cm)';
     if (kind === 'anchor') boxAt(g, 14, 8, 6.5, ux - 4, uy, uz, plug, 'USB-C 플러그 (COM 포트)');
     else boxAt(g, 8, 14, 6.5, ux, uy - 4, uz, plug, 'USB-C 플러그 (COM 포트)');
     // 안테나 중심 표시

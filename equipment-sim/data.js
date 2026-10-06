@@ -28,7 +28,7 @@ window.SIM = window.SIM || {};
         'ESP32-S3 N16R8 보드',
         'DWM3000EVB (J1 점퍼 2–3, D0–D6 비움)',
         '암-암 점퍼 9가닥: GPIO 12·13·11·10 (SPI), 4 (IRQ), 5 (RST), 6 (WAKE), 3V3, GND',
-        '보조배터리(샤오미 10000mAh) + USB A→C 20–30 cm, 판 아래쪽에 벨크로',
+        '보조배터리(NEXTU 10000mAh) + USB A→C 약 20 cm, 판 아래쪽에 벨크로',
         '판 위부터 UWB → ESP32 → 배터리, 벽에서 안테나 중심 7 cm, 6대 모두 같은 배치'
       ]
     },

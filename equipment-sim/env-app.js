@@ -474,16 +474,16 @@
       ['DWM3000EVB', '68.6 × 53.3 mm (Uno 쉴드)', 'UWB 거리 측정. J1 점퍼 2–3, D0–D6 비움'],
       ['ESP32-S3-DevKitC-1 N16R8', '70 × 28 mm (근사)', 'UWB 제어, Wi-Fi AP·BLE 광고'],
       ['점퍼선 암-암 9가닥', '10 cm (3V3는 빠듯하면 20 cm)', 'SPI 4 · IRQ · RST · WAKE · 3V3 · GND'],
-      ['보조배터리', '147.8 × 73.9 × 15.4 mm, 약 225 g (근사)', '샤오미 PLM13ZM, 저전류 모드'],
-      ['USB A→C 케이블', '20–30 cm', '배터리 USB-A → ESP32 COM 포트'],
+      ['보조배터리', '96 × 64 × 16 mm, 160 g', 'NEXTU 1006QPB MINI 10000mAh, USB-A로 공급'],
+      ['USB A→C 케이블', '약 20 cm (Adafruit 5045)', '배터리 USB-A → ESP32 COM 포트'],
       ['폼보드', '210 × 297 × 5 mm (A4)', '노드 한 대에 1장'],
       ['스티로폼 스페이서 2개', '180 × 35 × 41 mm', '벽 → 안테나 중심 70 mm'],
       ['벨크로 · 탈착식 양면테이프', '—', '배터리는 벨크로, 스페이서는 벽에 테이프']
     ],
     aux: [
       ['ESP32-S3-DevKitC-1 N16R8', '70 × 28 mm (근사)', 'Wi-Fi AP·BLE 광고만 (UWB 없음). 모듈 안테나를 위로'],
-      ['보조배터리', '147.8 × 73.9 × 15.4 mm (근사)', '앵커와 같은 모델'],
-      ['USB A→C 케이블', '20–30 cm', ''],
+      ['보조배터리', '96 × 64 × 16 mm, 160 g', '앵커와 같은 모델'],
+      ['USB A→C 케이블', '약 20 cm (Adafruit 5045)', ''],
       ['폼보드 · 스페이서 · 테이프', '앵커와 같음', '세션마다 S1 → S2 → S3로 옮긴다']
     ]
   };
@@ -524,7 +524,7 @@
         ev.wires.map(w => '<tr><td>' + esc(w.sig) + '</td><td>' + (w.need / 10).toFixed(1) + ' cm</td><td class="' + (w.status === 'ok' ? 'good' : w.status === 'over' ? 'bad' : '') + '">' + ({ ok: '여유', tight: '빠듯', over: '부족' }[w.status]) + '</td></tr>').join('') +
         '</tbody></table><span class="small">커넥터와 꺾임 여유를 포함한 길이다. 장비 시뮬레이터 배선 조립(2절)의 앵커 기본 배치와 같다. 3V3 선이 빠듯하면 예비 20 cm 점퍼를 쓴다.</span></div>';
     }
-    h += '<div class="blk"><h3>무게 (추정)</h3><span class="small">배터리 약 225 g + 보드·선 약 30 g + 폼보드·스페이서 약 25 g ≈ <b>0.28 kg</b>. 탈착식 테이프는 하중 표기 합이 1 kg 이상이 되게 여러 장 쓴다.</span></div>';
+    h += '<div class="blk"><h3>무게 (추정)</h3><span class="small">배터리 160 g + 보드·선 약 30 g + 폼보드·스페이서 약 25 g ≈ <b>0.22 kg</b>. 탈착식 테이프는 하중 표기 합이 1 kg 이상이 되게 여러 장 쓴다.</span></div>';
     $('node-side').innerHTML = h;
   }
   function renderNodeCards() {

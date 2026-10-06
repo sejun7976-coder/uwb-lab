@@ -43,13 +43,13 @@
   E.PARTS = {
     plate: { w: 210, h: 297, t: 5, name: '폼보드 5 mm (A4)' },
     spacer: { w: 180, h: 35, name: '스티로폼 스페이서', note: '벽 → 안테나 중심 70 mm가 되도록 두께를 맞춘다' },
-    bank: { L: 147.8, W: 73.9, T: 15.4, name: '샤오미 10000mAh PLM13ZM', approx: true, mass: 225 },
+    bank: { L: 96, W: 64, T: 16, name: 'NEXTU 1006QPB MINI 10000mAh', approx: true, mass: 160 },   // 외형·무게는 다나와 제품 정보, 포트 위치는 근사
     esp: { L: 70, W: 28, T: 1.6, name: 'ESP32-S3-DevKitC-1 호환 N16R8', approx: true },
     wroom: { L: 25.5, W: 18, T: 3.1, can: 18, name: 'ESP32-S3-WROOM-1 모듈' },
     dwm: { L: 68.58, W: 53.34, T: 1.6, name: 'Qorvo DWM3000EVB (Arduino Uno 쉴드 외형)' },
     dwmModule: { L: 23, W: 13, T: 2.9, name: 'DWM3000 모듈', approx: true },
     standOnPins: 21,            // 보드가 핀 + 암 커넥터 위에 얹힌 높이 (배선 조립과 같음)
-    cable: { len: 250, name: 'USB A→C 케이블 20–30 cm' }
+    cable: { len: 200, name: 'USB A→C 케이블 약 20 cm (Adafruit 5045)' }
   };
 
   // 노드 판 위 배치 (mm, 판 가운데 원점, x 오른쪽, y 위). ESP·DWM 상대 위치는 배선 조립의 기본 배치와 같다
